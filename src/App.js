@@ -20,6 +20,7 @@ import AllNews from './pages/AllNews';
 import ModulePage from './pages/ModulePage';
 import LessonPage from './pages/LessonPage';
 import LevelPage from './pages/LevelPage';
+import RoadmapPage from './pages/RoadmapPage';
 
 function App() {
   console.log('Environment Variables Check:');
@@ -104,6 +105,7 @@ function App() {
           <Route path="learn/:moduleId" element={<ModulePage />} />
           <Route path="learn/:moduleId/lesson/:lessonId" element={<LessonPage />} />
           <Route path="learn/:moduleId/lesson/:lessonId/level/:levelId" element={<LevelPage />} />
+          <Route path="roadmap" element={<RoadmapPage />} />
           <Route path="visualizer" element={<AlgorithmVisualizer />} />
           <Route path="projects" element={<ProjectLabs />} />
           <Route path="duel" element={<CodeDuel />} />

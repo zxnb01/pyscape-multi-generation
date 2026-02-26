@@ -6,23 +6,62 @@
       "description": "Learn the basics of Python programming language including variables, data types, control flow, functions, and more.",
       "difficulty": "beginner",
       "prerequisites": [],
-      "estimated_hours": 8,
+      "estimated_hours": 15,
       "topics": ["python", "programming", "learn-programming"],
       "lessons": [
         {
           "id": 1,
           "title": "Python Basics",
-          "type": "read"
+          "type": "read",
+          "description": "Introduction to Python syntax and your first program"
         },
         {
           "id": 2,
           "title": "Variables and Data Types",
-          "type": "code"
+          "type": "code",
+          "description": "Learn about numbers, strings, booleans, and basic operations"
         },
         {
           "id": 3,
           "title": "Control Flow",
-          "type": "code"
+          "type": "code",
+          "description": "Master if-else statements, while loops, and for loops"
+        },
+        {
+          "id": 4,
+          "title": "Lists and Collections",
+          "type": "code",
+          "description": "Work with lists, tuples, and list operations"
+        },
+        {
+          "id": 5,
+          "title": "Dictionaries and Sets",
+          "type": "code",
+          "description": "Key-value pairs and unique collections"
+        },
+        {
+          "id": 6,
+          "title": "Functions",
+          "type": "code",
+          "description": "Create reusable code with functions"
+        },
+        {
+          "id": 7,
+          "title": "File Operations",
+          "type": "code",
+          "description": "Read and write files in Python"
+        },
+        {
+          "id": 8,
+          "title": "Error Handling",
+          "type": "code",
+          "description": "Handle exceptions and debug your code"
+        },
+        {
+          "id": 9,
+          "title": "Object-Oriented Programming",
+          "type": "code",
+          "description": "Classes, objects, and OOP principles"
         }
       ]
     },
@@ -32,23 +71,32 @@
       "description": "Master data manipulation and analysis with Pandas, a powerful Python library for working with structured data.",
       "difficulty": "intermediate",
       "prerequisites": [1],
-      "estimated_hours": 12,
-      "topics": ["data-science", "pandas", "data-analytics"],
+      "estimated_hours": 14,
+      "topics": ["data-science", "pandas", "data-analytics", "numpy"],
       "lessons": [
         {
           "id": 1,
           "title": "Introduction to Pandas",
-          "type": "read"
+          "type": "read",
+          "description": "Getting started with Pandas and NumPy fundamentals"
         },
         {
           "id": 2,
           "title": "Data Frames and Series",
-          "type": "code"
+          "type": "code",
+          "description": "Master the core data structures in Pandas"
         },
         {
           "id": 3,
           "title": "Data Cleaning",
-          "type": "code"
+          "type": "code",
+          "description": "Handle missing data and prepare datasets"
+        },
+        {
+          "id": 4,
+          "title": "Data Analysis",
+          "type": "code",
+          "description": "Analyze and summarize datasets"
         }
       ]
     },

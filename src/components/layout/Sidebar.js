@@ -10,6 +10,7 @@ const Sidebar = () => {
   const navItems = [
     { to: '/app', icon: '🏠', label: 'Dashboard', exact: true },
     { to: '/app/learn', icon: '📚', label: 'Learn' },
+    { to: '/app/roadmap', icon: '🗺️', label: 'Roadmap' },
     { to: '/app/visualizer', icon: '📊', label: 'Visualizer' },
     { to: '/app/projects', icon: '🧪', label: 'Project Labs' },
     { to: '/app/duel', icon: '⚔️', label: 'Code Duel' },
