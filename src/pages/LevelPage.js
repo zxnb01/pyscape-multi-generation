@@ -272,7 +272,7 @@ Special characters that create formatting effects:
 - \`\\n\` - New line
 - \`\\t\` - Tab (4 spaces)
 - \`\\"\` - Double quote
-- \`\\\'\` - Single quote
+- \`\\'\` - Single quote
 - \`\\\\\` - Backslash
 
 \`\`\`python
@@ -2699,7 +2699,6 @@ const LevelPage = () => {
   const [activeTab, setActiveTab] = useState('learn');
   const [currentExample, setCurrentExample] = useState(0);
   const [showSolution, setShowSolution] = useState(false);
-  const [codeInput, setCodeInput] = useState('');
 
   // Reset solution visibility when switching examples or tabs
   useEffect(() => {

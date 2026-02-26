@@ -1,19 +1,11 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Navigate } from 'react-router-dom';
 
+// Redirect straight to level 1 — LevelPage holds all real lesson content
 const LessonPage = () => {
   const { moduleId, lessonId } = useParams();
-
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>Module {moduleId} - Lesson {lessonId}</h1>
-      <p>This is where the lesson content will go.</p>
-
-      <Link to={`/learn/${moduleId}`} className="text-blue-500">
-        ← Back to Module
-      </Link>
-    </div>
-  );
+  return <Navigate to={`/app/learn/${moduleId}/lesson/${lessonId}/level/1`} replace />;
 };
 
 export default LessonPage;
+
