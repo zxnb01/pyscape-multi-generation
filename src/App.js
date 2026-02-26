@@ -21,6 +21,7 @@ import ModulePage from './pages/ModulePage';
 import LessonPage from './pages/LessonPage';
 import LevelPage from './pages/LevelPage';
 import RoadmapPage from './pages/RoadmapPage';
+import ProjectDetailPage from './pages/ProjectDetailPage';
 
 function App() {
   console.log('Environment Variables Check:');
@@ -108,6 +109,7 @@ function App() {
           <Route path="roadmap" element={<RoadmapPage />} />
           <Route path="visualizer" element={<AlgorithmVisualizer />} />
           <Route path="projects" element={<ProjectLabs />} />
+          <Route path="projects/:id" element={<ProjectDetailPage />} />
           <Route path="duel" element={<CodeDuel />} />
           <Route path="sandbox" element={<MLSandbox />} />
           <Route path="portfolio" element={<Portfolio />} />

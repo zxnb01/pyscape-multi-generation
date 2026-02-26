@@ -52,7 +52,7 @@ const ProjectCard = ({ project }) => {
       
       {status === 'available' ? (
         <Link 
-          to={`/projects/${id}`} 
+          to={`/app/projects/${id}`} 
           className="btn-primary w-full text-center"
         >
           Start Project

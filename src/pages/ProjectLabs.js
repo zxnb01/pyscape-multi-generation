@@ -1,62 +1,16 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import ProjectCard from '../components/projects/ProjectCard';
+import { projects as allProjects } from '../data/projectsData';
 
 const ProjectLabs = () => {
   const [filter, setFilter] = useState('all');
-  
-  const projects = [
-    {
-      id: 1,
-      title: 'Sentiment Analyzer',
-      description: 'Build a model to analyze text sentiment using NLP techniques.',
-      difficulty: 'Easy',
-      category: 'NLP',
-      xp: 50,
-      status: 'available',
-      keywords: ['NLP', 'Python', 'NLTK']
-    },
-    {
-      id: 2,
-      title: 'Image Classifier (CIFAR-10)',
-      description: 'Create a CNN to classify images from the CIFAR-10 dataset.',
-      difficulty: 'Medium',
-      category: 'Computer Vision',
-      xp: 150,
-      status: 'locked',
-      keywords: ['CNN', 'TensorFlow', 'Computer Vision']
-    },
-    {
-      id: 3,
-      title: 'Predict Stock Prices',
-      description: 'Use time series analysis to predict stock market trends.',
-      difficulty: 'Hard',
-      category: 'Time Series',
-      xp: 300,
-      status: 'locked',
-      keywords: ['LSTM', 'Time Series', 'Pandas']
-    },
-    {
-      id: 4,
-      title: 'Chatbot with Transformer',
-      description: 'Build a simple chatbot using transformer architecture.',
-      difficulty: 'Hard',
-      category: 'NLP',
-      xp: 250,
-      status: 'locked',
-      keywords: ['Transformers', 'NLP', 'HuggingFace']
-    },
-    {
-      id: 5,
-      title: 'Data Visualization Dashboard',
-      description: 'Create an interactive dashboard to visualize COVID-19 data.',
-      difficulty: 'Medium',
-      category: 'Data Visualization',
-      xp: 120,
-      status: 'available',
-      keywords: ['Plotly', 'Dash', 'Pandas']
-    }
-  ];
+
+  // normalise: ProjectCard expects `description`, data has `tagline`
+  const projects = allProjects.map(p => ({
+    ...p,
+    description: p.description || p.tagline,
+  }));
   
   const filteredProjects = filter === 'all' 
     ? projects 
