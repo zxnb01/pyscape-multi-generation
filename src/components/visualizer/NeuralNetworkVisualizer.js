@@ -1,4 +1,38 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import TutorialOverlay from './TutorialOverlay';
+
+const NEURAL_TUTORIAL = [
+  {
+    title: 'Choose a network architecture',
+    body: 'Select a preset like "2-3-1" which means: 2 input neurons → 3 hidden neurons → 1 output neuron. Deeper / wider architectures can represent more complex functions but are harder to interpret.',
+    highlight: 'Architecture buttons — e.g. 2-3-1, 3-4-4-2, 4-6-4-2',
+  },
+  {
+    title: 'Pick an activation function',
+    body: 'Activation functions introduce non-linearity. ReLU: max(0, z) — sparse and fast, most common in deep learning. Sigmoid: maps to [0,1]. Tanh: maps to [-1,1], zero-centred. Linear: no squashing (output/regression layers).',
+    highlight: 'Activation buttons — colour-coded, applies to all neurons',
+  },
+  {
+    title: 'Drag the input sliders',
+    body: 'Adjust x₁, x₂ (etc.) from -1 to +1. The full forward pass recomputes instantly — watch activation values inside every neuron change in real time as you slide. This shows how input signals propagate.',
+    highlight: 'Input sliders — each xᵢ maps directly to one input-layer neuron',
+  },
+  {
+    title: 'Randomise the weights',
+    body: 'Click "↺ New Weights" to reinitialise all edge weights and biases with fresh random values. This simulates a newly untrained network — activations will completely change. Try the forward pass before and after!',
+    highlight: '"↺ New Weights" button',
+  },
+  {
+    title: 'Animate the forward pass',
+    body: 'Click "▶ Forward Pass" to watch the signal travel left-to-right, lighting up each layer in sequence. Each layer activates after the previous one — this is exactly what happens inside a real neural network at inference time.',
+    highlight: '"▶ Forward Pass" button — watch layers pulse one by one',
+  },
+  {
+    title: 'Read edges and output nodes',
+    body: 'Blue edges = positive weights, red = negative. Thicker edge = larger weight magnitude. The rightmost output nodes show final computed values with a colour bar — brighter / warmer = higher activation.',
+    highlight: 'Network edges (blue/red) + Output readout panel below the chart',
+  },
+];
 
 /* ── activation functions ───────────────────────────────────── */
 const ACT = {
@@ -91,6 +125,7 @@ export default function NeuralNetworkVisualizer() {
   const [activeLayer, setActiveLayer] = useState(-1);
   const [animating, setAnimating] = useState(false);
   const [inputs, setInputs]       = useState([0.8, -0.5, 0.3, 0.6]);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const arch = PRESETS[archKey];
   const actFn = ACT[actKey].fn;
@@ -138,8 +173,8 @@ export default function NeuralNetworkVisualizer() {
   const LAYER_LABELS = ['Input', ...arch.slice(1, -1).map((_, i) => `Hidden ${i + 1}`), 'Output'];
 
   return (
-    <div className="p-4 space-y-4">
-      {/* controls */}
+    <div className="relative p-4 space-y-4">
+      {/* controls */
       <div className="flex flex-wrap gap-4 items-end">
         <div>
           <label className="block text-xs text-gray-400 mb-1">Architecture</label>
@@ -173,6 +208,11 @@ export default function NeuralNetworkVisualizer() {
           className="py-1.5 px-5 rounded-lg text-sm font-semibold bg-primary hover:bg-primary-dark text-white transition-colors disabled:opacity-50">
           {animating ? '▶ Running…' : '▶ Forward Pass'}
         </button>
+        <button
+          onClick={() => setShowTutorial(true)}
+          title="How to use this visualizer"
+          className="w-8 h-8 rounded-full bg-dark-lightest border border-primary/40 text-primary font-bold hover:bg-primary/20 transition-colors flex items-center justify-center"
+        >?</button>
       </div>
 
       {/* input sliders */}
@@ -289,6 +329,13 @@ export default function NeuralNetworkVisualizer() {
         <span className="text-blue-400"> Blue edges</span> = positive weights,
         <span className="text-red-400"> red edges</span> = negative weights.
       </div>
+
+      {showTutorial && (
+        <TutorialOverlay
+          steps={NEURAL_TUTORIAL}
+          onClose={() => setShowTutorial(false)}
+        />
+      )}
     </div>
   );
 }

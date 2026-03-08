@@ -6,6 +6,7 @@ import DataStructureVisualizer from '../components/visualizer/DataStructureVisua
 import KMeansVisualizer from '../components/visualizer/KMeansVisualizer';
 import GradientDescentVisualizer from '../components/visualizer/GradientDescentVisualizer';
 import NeuralNetworkVisualizer from '../components/visualizer/NeuralNetworkVisualizer';
+import TheoryCard from '../components/visualizer/TheoryCard';
 
 const tabs = [
   {
@@ -111,21 +112,29 @@ const AlgorithmVisualizer = () => {
         {descriptions[activeTab]}
       </motion.p>
 
-      {/* visualizer card */}
-      <motion.div
-        key={activeTab + '-card'}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="card overflow-hidden"
-      >
-        {activeTab === 'kmeans'       && <KMeansVisualizer />}
-        {activeTab === 'gradient'     && <GradientDescentVisualizer />}
-        {activeTab === 'neural'       && <NeuralNetworkVisualizer />}
-        {activeTab === 'sorting'      && <SortingVisualizer />}
-        {activeTab === 'pathfinding'  && <PathfindingVisualizer />}
-        {activeTab === 'dataStructure'&& <DataStructureVisualizer />}
-      </motion.div>
+      {/* two-column layout: visualizer left, theory panel right */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-4 items-start">
+
+        {/* visualizer card */}
+        <motion.div
+          key={activeTab + '-card'}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="card overflow-hidden"
+        >
+          {activeTab === 'kmeans'        && <KMeansVisualizer />}
+          {activeTab === 'gradient'      && <GradientDescentVisualizer />}
+          {activeTab === 'neural'        && <NeuralNetworkVisualizer />}
+          {activeTab === 'sorting'       && <SortingVisualizer />}
+          {activeTab === 'pathfinding'   && <PathfindingVisualizer />}
+          {activeTab === 'dataStructure' && <DataStructureVisualizer />}
+        </motion.div>
+
+        {/* theory / academic panel */}
+        <TheoryCard activeTab={activeTab} />
+
+      </div>
     </div>
   );
 };

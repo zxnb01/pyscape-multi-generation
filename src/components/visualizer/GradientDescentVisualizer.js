@@ -1,4 +1,38 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import TutorialOverlay from './TutorialOverlay';
+
+const GRADIENT_TUTORIAL = [
+  {
+    title: 'Pick a loss landscape',
+    body: '"Simple Bowl" is perfectly convex — gradient descent always finds the global minimum. "Bumpy" is non-convex with local minima. "Saddle / Ravine" has tricky geometry. Each shows different optimizer behaviour.',
+    highlight: '"Loss Function" dropdown — top-left of controls',
+  },
+  {
+    title: 'Understand the visual',
+    body: 'The blue curve is the loss surface L(w). The orange ball is the current weight position w. The purple dashed line is the gradient (tangent slope) at that point — it shows which direction is "downhill".',
+    highlight: 'Main chart — blue curve with orange ball and purple tangent',
+  },
+  {
+    title: 'Set the learning rate η',
+    body: 'Drag the "Learning Rate" slider (0.01–0.5). Too small = convergence is very slow. Too large = ball overshoots the minimum and oscillates. Try 0.45 on the Bumpy surface to see it bounce between local minima!',
+    highlight: '"Learning Rate" slider — watch step size change in real time',
+  },
+  {
+    title: 'Take one manual step',
+    body: 'Click "Step →" once. The ball moves one gradient update: w ← w − η · ∇L(w). Watch the stats bar update: w (weight), Loss (current loss value), and ∇ (gradient magnitude).',
+    highlight: '"Step →" button + stats bar showing w, Loss, ∇',
+  },
+  {
+    title: 'Watch the loss history chart',
+    body: 'The mini chart below the main plot tracks loss over every step. A smooth downward curve = healthy descent. A spiky / rising curve = learning rate is too high and the optimizer is diverging.',
+    highlight: '"Loss over steps" mini-chart at the bottom',
+  },
+  {
+    title: 'Run to convergence',
+    body: 'Click "▶ Run" to automate all steps at 120ms per step. Stops automatically when |∇L| < 0.001 (converged) or after 200 steps. "✓ Converged!" appears in green in the stats bar.',
+    highlight: '"▶ Run" button — switches to ⏸ Pause while running',
+  },
+];
 
 const W = 560;
 const H = 320;
@@ -67,6 +101,7 @@ export default function GradientDescentVisualizer() {
   const [history, setHistory]     = useState([]);
   const [running, setRunning]     = useState(false);
   const [steps, setSteps]         = useState(0);
+  const [showTutorial, setShowTutorial] = useState(false);
   const intervalRef               = useRef(null);
   const stateRef                  = useRef({ w: 2.5, history: [], steps: 0 });
 
@@ -136,8 +171,8 @@ export default function GradientDescentVisualizer() {
   }).join(' ');
 
   return (
-    <div className="p-4 space-y-4">
-      {/* controls */}
+    <div className="relative p-4 space-y-4">
+      {/* controls */
       <div className="flex flex-wrap gap-4 items-end">
         <div>
           <label className="block text-xs text-gray-400 mb-1">Loss Function</label>
@@ -170,6 +205,11 @@ export default function GradientDescentVisualizer() {
           }`}>
           {running ? '⏸ Pause' : '▶ Run'}
         </button>
+        <button
+          onClick={() => setShowTutorial(true)}
+          title="How to use this visualizer"
+          className="w-8 h-8 rounded-full bg-dark-lightest border border-primary/40 text-primary font-bold hover:bg-primary/20 transition-colors flex items-center justify-center"
+        >?</button>
       </div>
 
       {/* stats */}
@@ -258,6 +298,13 @@ export default function GradientDescentVisualizer() {
         The <span className="text-purple-400">purple line</span> shows the gradient (tangent slope).
         <br /><span className="text-white">{fn.desc}</span>
       </div>
+
+      {showTutorial && (
+        <TutorialOverlay
+          steps={GRADIENT_TUTORIAL}
+          onClose={() => setShowTutorial(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,4 +1,38 @@
 import React, { useState, useRef, useCallback } from 'react';
+import TutorialOverlay from './TutorialOverlay';
+
+const SORTING_TUTORIAL = [
+  {
+    title: 'Choose an algorithm',
+    body: 'Use the "Algorithm" dropdown to pick Bubble Sort, Merge Sort, or Quick Sort. Each has different trade-offs — Bubble is O(n²) while Merge and Quick average O(n log n).',
+    highlight: 'Algorithm selector — top-left of the controls row',
+  },
+  {
+    title: 'Set the array size',
+    body: 'Drag the "Size" slider from 10 to 80 elements. A larger array makes the O(n²) cost of Bubble Sort painfully obvious compared to the O(n log n) algorithms.',
+    highlight: 'Size slider — current count shown in the label above it',
+  },
+  {
+    title: 'Control the animation speed',
+    body: 'The "Speed" slider (1–100) sets how fast each comparison step animates. Start slow to study comparisons carefully. You can drag it faster or slower even while sorting is running!',
+    highlight: 'Speed slider — adjustable mid-sort',
+  },
+  {
+    title: 'Generate a fresh array',
+    body: 'Click "↺ New Array" to randomise all bars to new random heights. Disabled while a sort is running. Use it to retry the same algorithm on a different input and compare results.',
+    highlight: '"↺ New Array" button',
+  },
+  {
+    title: 'Read the colour legend',
+    body: 'Every colour means something: Orange = two elements being compared right now. Purple = elements being swapped. Red = the pivot element (Quick Sort only). Green = element is locked in its final sorted position.',
+    highlight: 'Colour legend row — just below the controls',
+  },
+  {
+    title: 'Hit Sort and watch!',
+    body: "Click '▶ Sort' to start. Bars animate in real time showing every comparison and swap. When done the button shows '✓ Sorted!' — generate a new array and try a different algorithm to feel the difference!",
+    highlight: '"▶ Sort" button — right side of controls',
+  },
+];
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -19,6 +53,7 @@ export default function SortingVisualizer() {
   const [algorithm, setAlgorithm] = useState('bubble');
   const [size,      setSize]      = useState(40);
   const [speed,     setSpeed]     = useState(50);
+  const [showTutorial, setShowTutorial] = useState(false);
   const stopRef  = useRef(false);
   const speedRef = useRef(50);
 
@@ -212,8 +247,8 @@ export default function SortingVisualizer() {
   const info = INFO[algorithm];
 
   return (
-    <div className="p-4 space-y-4">
-      {/* controls */}
+    <div className="relative p-4 space-y-4">
+      {/* controls */
       <div className="flex flex-wrap gap-4 items-end">
         <div>
           <label className="block text-xs text-gray-400 mb-1">Algorithm</label>
@@ -251,6 +286,11 @@ export default function SortingVisualizer() {
           }`}>
           {completed ? '✓ Sorted!' : sorting ? 'Sorting…' : '▶ Sort'}
         </button>
+        <button
+          onClick={() => setShowTutorial(true)}
+          title="How to use this visualizer"
+          className="w-8 h-8 rounded-full bg-dark-lightest border border-primary/40 text-primary font-bold hover:bg-primary/20 transition-colors flex items-center justify-center"
+        >?</button>
       </div>
 
       {/* colour legend */}
@@ -295,6 +335,13 @@ export default function SortingVisualizer() {
           <span>Stable: <span className={info.stable === 'Yes' ? 'text-green-400' : 'text-red-400'}>{info.stable}</span></span>
         </div>
       </div>
+
+      {showTutorial && (
+        <TutorialOverlay
+          steps={SORTING_TUTORIAL}
+          onClose={() => setShowTutorial(false)}
+        />
+      )}
     </div>
   );
 }
