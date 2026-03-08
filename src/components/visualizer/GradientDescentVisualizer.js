@@ -172,7 +172,7 @@ export default function GradientDescentVisualizer() {
 
   return (
     <div className="relative p-4 space-y-4">
-      {/* controls */
+      {/* controls */}
       <div className="flex flex-wrap gap-4 items-end">
         <div>
           <label className="block text-xs text-gray-400 mb-1">Loss Function</label>
