@@ -561,7 +561,7 @@ class RoadmapService {
       
       if (lessonIds.length > 0) {
         const { data: progress } = await supabase
-          .from('user_progress')
+          .from('progress')
           .select('lesson_id, status, score, completed_at')
           .eq('user_id', userId)
           .in('lesson_id', lessonIds);

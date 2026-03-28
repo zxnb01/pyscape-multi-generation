@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProjectById } from '../data/projectsData';
@@ -73,8 +73,36 @@ export default function ProjectDetailPage() {
   const navigate = useNavigate();
   const [selectedMode, setSelectedMode] = useState(null);
   const [openStep, setOpenStep] = useState(null);
+  const [project, setProject] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const project = getProjectById(id);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const p = await getProjectById(id);
+      if (!cancelled) {
+        setProject(p || null);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto pb-20">
+        <div className="h-4 w-40 bg-dark-lighter rounded animate-pulse mb-6" />
+        <div className="rounded-2xl bg-dark-lighter p-10 mb-8 animate-pulse">
+          <div className="h-8 w-3/4 bg-dark-lightest rounded mb-4" />
+          <div className="h-5 w-1/2 bg-dark-lightest rounded mb-6" />
+          <div className="flex gap-3">
+            <div className="h-8 w-20 bg-dark-lightest rounded-full" />
+            <div className="h-8 w-20 bg-dark-lightest rounded-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!project) {
     return (

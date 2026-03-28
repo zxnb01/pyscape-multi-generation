@@ -1,63 +1,87 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import supabase from '../utils/supabaseClient';
 
 const Learn = () => {
   const navigate = useNavigate();
-  const modules = [
-    {
-      id: 1,
-      title: 'Python Fundamentals',
-      description: 'Learn the basics of Python programming language.',
-      lessons: 12,
-      progress: 0,
-      status: 'available'
-    },
-    {
-      id: 2,
-      title: 'Data Science with Pandas',
-      description: 'Master data manipulation and analysis with Pandas.',
-      lessons: 10,
-      progress: 0,
-      status: 'locked'
-    },
-    {
-      id: 3,
-      title: 'Machine Learning Basics',
-      description: 'Introduction to machine learning concepts and algorithms.',
-      lessons: 15,
-      progress: 0,
-      status: 'locked'
-    },
-    {
-      id: 4,
-      title: 'Neural Networks & Deep Learning',
-      description: 'Build and train neural networks for various applications.',
-      lessons: 18,
-      progress: 0,
-      status: 'locked'
-    },
-    {
-      id: 5,
-      title: 'Natural Language Processing',
-      description: 'Process and analyze text data using NLP techniques.',
-      lessons: 14,
-      progress: 0,
-      status: 'locked'
-    },
-    {
-      id: 6,
-      title: 'Computer Vision',
-      description: 'Analyze and process images using computer vision.',
-      lessons: 12,
-      progress: 0,
-      status: 'locked'
-    }
-  ];
+  const [modules, setModules] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchModules = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('modules')
+          .select('id, title, description, difficulty, prerequisites, estimated_hours, order_index, tags, is_published')
+          .eq('is_published', true)
+          .order('order_index', { ascending: true });
+
+        if (error) throw error;
+
+        // Calculate lesson count per module
+        const { data: lessonCounts, error: lcErr } = await supabase
+          .from('lessons')
+          .select('module_id');
+
+        if (lcErr) throw lcErr;
+
+        const countMap = {};
+        (lessonCounts || []).forEach(l => {
+          countMap[l.module_id] = (countMap[l.module_id] || 0) + 1;
+        });
+
+        const enriched = (data || []).map((mod, idx) => ({
+          ...mod,
+          lessons: countMap[mod.id] || 0,
+          progress: 0, // TODO: compute from progress table
+          status: idx === 0 ? 'available' : 'locked', // first module unlocked, rest locked by default
+        }));
+
+        setModules(enriched);
+      } catch (err) {
+        console.error('Error fetching modules:', err);
+        // Fallback to hardcoded data if DB unavailable
+        setModules([
+          { id: 1, title: 'Python Fundamentals', description: 'Learn the basics of Python programming language.', lessons: 12, progress: 0, status: 'available' },
+          { id: 2, title: 'Data Science with Pandas', description: 'Master data manipulation and analysis with Pandas.', lessons: 10, progress: 0, status: 'locked' },
+          { id: 3, title: 'Machine Learning Basics', description: 'Introduction to machine learning concepts and algorithms.', lessons: 15, progress: 0, status: 'locked' },
+          { id: 4, title: 'Neural Networks & Deep Learning', description: 'Build and train neural networks for various applications.', lessons: 18, progress: 0, status: 'locked' },
+          { id: 5, title: 'Natural Language Processing', description: 'Process and analyze text data using NLP techniques.', lessons: 14, progress: 0, status: 'locked' },
+          { id: 6, title: 'Computer Vision', description: 'Analyze and process images using computer vision.', lessons: 12, progress: 0, status: 'locked' },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchModules();
+  }, []);
 
   const handleStartLearning = (moduleId) => {
     navigate(`/learn/${moduleId}`);
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <div className="h-8 w-48 bg-dark-lighter rounded animate-pulse mb-2" />
+          <div className="h-4 w-96 bg-dark-lighter rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="card p-6 animate-pulse">
+              <div className="h-6 w-3/4 bg-dark-lightest rounded mb-3" />
+              <div className="h-4 w-full bg-dark-lightest rounded mb-4" />
+              <div className="h-2 w-full bg-dark-lightest rounded mb-4" />
+              <div className="h-10 w-full bg-dark-lightest rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto">

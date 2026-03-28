@@ -22,6 +22,8 @@ import LessonPage from './pages/LessonPage';
 import LevelPage from './pages/LevelPage';
 import RoadmapPage from './pages/RoadmapPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
+import DebugContentGenerator from './pages/DebugContentGenerator';
+import DiagnosticPage from './pages/DiagnosticPage';
 
 function App() {
   console.log('Environment Variables Check:');
@@ -103,6 +105,7 @@ function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="learn" element={<Learn />} />
+          <Route path="learn/diagnostic" element={<DiagnosticPage />} />
           <Route path="learn/:moduleId" element={<ModulePage />} />
           <Route path="learn/:moduleId/lesson/:lessonId" element={<LessonPage />} />
           <Route path="learn/:moduleId/lesson/:lessonId/level/:levelId" element={<LevelPage />} />
@@ -119,6 +122,9 @@ function App() {
 
         {/* Redirects to /app/dashboard instead of 404 for logged-in users */}
         <Route path="/dashboard" element={<Navigate to="/app" replace />} />
+
+        {/* Debug: Content Generator - for development only */}
+        <Route path="/debug/content-generator" element={<DebugContentGenerator />} />
 
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />

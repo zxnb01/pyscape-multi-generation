@@ -1,22 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ProjectCard from '../components/projects/ProjectCard';
-import { projects as allProjects } from '../data/projectsData';
+import { fetchProjects, projects as fallbackProjects } from '../data/projectsData';
 
 const ProjectLabs = () => {
   const [filter, setFilter] = useState('all');
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // normalise: ProjectCard expects `description`, data has `tagline`
-  const projects = allProjects.map(p => ({
-    ...p,
-    description: p.description || p.tagline,
-  }));
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await fetchProjects();
+        setProjects(data.map(p => ({ ...p, description: p.description || p.tagline })));
+      } catch {
+        setProjects(fallbackProjects.map(p => ({ ...p, description: p.description || p.tagline })));
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
   
   const filteredProjects = filter === 'all' 
     ? projects 
     : projects.filter(project => project.category === filter);
   
   const categories = ['all', ...new Set(projects.map(project => project.category))];
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <div className="h-8 w-40 bg-dark-lighter rounded animate-pulse mb-2" />
+          <div className="h-4 w-80 bg-dark-lighter rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1,2,3].map(i => (
+            <div key={i} className="card p-6 animate-pulse">
+              <div className="h-6 w-3/4 bg-dark-lightest rounded mb-3" />
+              <div className="h-4 w-full bg-dark-lightest rounded mb-4" />
+              <div className="h-10 w-full bg-dark-lightest rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
