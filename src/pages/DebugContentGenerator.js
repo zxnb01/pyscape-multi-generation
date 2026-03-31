@@ -73,8 +73,8 @@ export default function DebugContentGenerator() {
         .sort((a, b) => b.score - a.score || a.skill.difficulty - b.skill.difficulty);
 
       if (scored.length === 0) {
-        console.warn(`⚠️ No inferred skill matches for module ${selectedModule.id}. Falling back to full skill list.`);
-        return allSkills;
+        console.warn(`⚠️ No inferred skill matches for module ${selectedModule.id}. Returning no fallback targets.`);
+        return [];
       }
 
       const { data: deps, error: depsError } = await supabase
@@ -108,7 +108,7 @@ export default function DebugContentGenerator() {
       return inferredSkills;
     } catch (error) {
       console.error('Failed to infer module skills:', error);
-      return allSkills;
+      return [];
     }
   }, []);
 
@@ -156,6 +156,7 @@ export default function DebugContentGenerator() {
         const lessonTargets = (moduleLessons || []).map(lesson => ({
           id: lesson.id,
           skillId: lesson.skill_id,
+          title: lesson.title,
           name: lesson.title,
           description: `${selectedModule?.title || 'Module lesson'} (${lesson.type || 'read'})`,
           estimated_minutes: lesson.estimated_minutes,
@@ -171,6 +172,7 @@ export default function DebugContentGenerator() {
         const fallbackTargets = (moduleScopedSkills || []).map(skill => ({
           id: skill.id,
           skillId: skill.id,
+          title: skill.name,
           name: skill.name,
           description: skill.description,
           estimated_minutes: skill.estimated_minutes,

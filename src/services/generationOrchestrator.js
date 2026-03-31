@@ -108,6 +108,92 @@ async function getExistingLesson(skillId, moduleId) {
 }
 
 /**
+ * Map a level number to a queue generation type that fits the schema.
+ */
+function getQueueGenerationType(levelNumber) {
+  switch (levelNumber) {
+    case 1:
+      return 'intro';
+    case 2:
+    case 3:
+      return 'practical';
+    case 4:
+      return 'projects';
+    case 5:
+      return 'challenges';
+    default:
+      return 'custom';
+  }
+}
+
+/**
+ * Reuse an existing generation queue row or create one when missing.
+ */
+async function getOrCreateQueueEntry(skillId, moduleId, levelNumber, batchConfig = {}, lessonId = null) {
+  try {
+    let query = supabase
+      .from('generation_queue')
+      .select('id');
+
+    if (lessonId) {
+      query = query.eq('lesson_id', lessonId);
+    } else if (skillId) {
+      query = query.eq('skill_id', skillId);
+    }
+
+    let { data: existingRows, error: selectError } = await query
+      .eq('module_id', moduleId)
+      .eq('level', levelNumber)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if ((!existingRows || existingRows.length === 0) && lessonId && skillId) {
+      const skillFallback = await supabase
+        .from('generation_queue')
+        .select('id')
+        .eq('skill_id', skillId)
+        .eq('module_id', moduleId)
+        .eq('level', levelNumber)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (skillFallback.error) throw skillFallback.error;
+      existingRows = skillFallback.data;
+    }
+
+    if (selectError) throw selectError;
+
+    if (existingRows && existingRows.length > 0) {
+      return existingRows[0];
+    }
+
+    const { data: createdRow, error: insertError } = await supabase
+      .from('generation_queue')
+      .insert({
+        skill_id: skillId || null,
+        lesson_id: lessonId || null,
+        module_id: moduleId,
+        level: levelNumber,
+        generation_type: getQueueGenerationType(levelNumber),
+        status: 'pending',
+        batch_config: {
+          mode: batchConfig.mode || 'skill_first',
+          levels_selected: batchConfig.selectedLevels || [1, 2, 3, 4, 5]
+        }
+      })
+      .select('id')
+      .single();
+
+    if (insertError) throw insertError;
+
+    return createdRow;
+  } catch (error) {
+    console.warn(`  ⚠️ Queue entry unavailable for skill ${skillId}, level ${levelNumber}:`, error.message);
+    return null;
+  }
+}
+
+/**
  * Calculate next order_index for skill in module using prerequisite awareness
  * PHASE 3 ENHANCEMENT: Respects skill prerequisite chains
  */
@@ -186,7 +272,7 @@ async function getNextOrderIndex(moduleId, skillId = null) {
 /**
  * Save generated level content to database
  */
-async function saveLevelContent(skillId, moduleId, levelContent, existingLessonId = null) {
+async function saveLevelContent(skillId, moduleId, levelContent, existingLessonId = null, lessonTitleOverride = null) {
   try {
     const levelNumber = levelContent.level;
     
@@ -199,7 +285,7 @@ async function saveLevelContent(skillId, moduleId, levelContent, existingLessonI
         .insert({
           skill_id: skillId,
           module_id: moduleId,
-          title: levelContent.title,
+          title: lessonTitleOverride || levelContent.title,
           type: 'read', // 'read' for AI-generated content lessons
           content: JSON.stringify(levelContent),
           parts: [levelContent], // Array with first level - let Supabase handle JSONB
@@ -250,6 +336,9 @@ async function saveLevelContent(skillId, moduleId, levelContent, existingLessonI
       // If updating Level 1, also update content field
       if (levelIndex === 0) {
         updatePayload.content = JSON.stringify(levelContent);
+        if (lessonTitleOverride) {
+          updatePayload.title = lessonTitleOverride;
+        }
       }
 
       const { error: updateError } = await supabase
@@ -303,16 +392,12 @@ export async function generateSkillMultiLevel(skillId, moduleId, batchConfig = {
     for (const levelNumber of selectedLevels) {
       console.log(`\n   📌 Level ${levelNumber}/${Math.max(...selectedLevels)}`);
 
-      // Get queue entry for tracking
-      const { data: queueEntry, error: queueError } = await supabase
-        .from('generation_queue')
-        .select('id')
-        .eq('skill_id', skillId)
-        .eq('module_id', moduleId)
-        .eq('level', levelNumber)
-        .single();
+      const queueEntry = await getOrCreateQueueEntry(skillId, moduleId, levelNumber, {
+        mode,
+        selectedLevels
+      }, null);
 
-      if (!queueError && queueEntry) {
+      if (queueEntry) {
         await updateQueueStatus(queueEntry.id, 'processing');
       }
 
@@ -410,7 +495,9 @@ export async function generateModuleLessonMultiLevel(moduleId, lessonSeed, batch
     selectedLevels = [1, 2, 3, 4, 5]
   } = batchConfig;
 
-  console.log(`\n🎯 Starting module-topic generation for lesson "${lessonSeed?.title}" in module ${moduleId}`);
+  const lessonTitle = lessonSeed?.title || lessonSeed?.name || `Module ${moduleId} Lesson`;
+
+  console.log(`\n🎯 Starting module-topic generation for lesson "${lessonTitle}" in module ${moduleId}`);
   console.log(`   Mode: ${mode} | Levels: ${selectedLevels.join(', ')}`);
 
   try {
@@ -429,8 +516,8 @@ export async function generateModuleLessonMultiLevel(moduleId, lessonSeed, batch
       }
     }
 
-    const syntheticSkillName = lessonSeed?.title || skill?.name || `${module.title} Lesson`;
-    const syntheticDescription = skill?.description || `${module.description || ''} Focus: ${lessonSeed?.title || 'module lesson'}`;
+    const syntheticSkillName = lessonTitle || skill?.name || `${module.title} Lesson`;
+    const syntheticDescription = skill?.description || `${module.description || ''} Focus: ${lessonTitle || 'module lesson'}`;
 
     let existingLessonId = lessonSeed?.id || null;
 
@@ -450,7 +537,7 @@ export async function generateModuleLessonMultiLevel(moduleId, lessonSeed, batch
       moduleDescription: module?.description,
       moduleTags: module?.tags || [],
       lessonId: lessonSeed?.id || null,
-      lessonTitle: lessonSeed?.title || syntheticSkillName,
+      lessonTitle,
       lessonOrderIndex: lessonSeed?.order_index,
       mode
     };
@@ -461,6 +548,15 @@ export async function generateModuleLessonMultiLevel(moduleId, lessonSeed, batch
       try {
         const agent = getAgentForLevel(levelNumber);
         console.log(`   🤖 Using ${agent.name}`);
+
+        const queueEntry = await getOrCreateQueueEntry(lessonSeed?.skillId || null, moduleId, levelNumber, {
+          mode,
+          selectedLevels
+        }, lessonSeed?.id || null);
+
+        if (queueEntry) {
+          await updateQueueStatus(queueEntry.id, 'processing');
+        }
 
         if (selectedLevels.indexOf(levelNumber) > 0) {
           await new Promise(resolve => setTimeout(resolve, 2000));
@@ -481,8 +577,15 @@ export async function generateModuleLessonMultiLevel(moduleId, lessonSeed, batch
         totalTokens += estimatedTokens;
         totalCost += estimatedCost;
 
-        const lessonId = await saveLevelContent(lessonSeed?.skillId || null, moduleId, levelContent, existingLessonId);
+        const lessonId = await saveLevelContent(lessonSeed?.skillId || null, moduleId, levelContent, existingLessonId, lessonTitle);
         if (!existingLessonId) existingLessonId = lessonId;
+
+        if (queueEntry) {
+          await updateQueueStatus(queueEntry.id, 'completed', {
+            tokens_used: estimatedTokens,
+            cost_usd: estimatedCost.toFixed(6)
+          });
+        }
 
         generatedLevels.push({
           level: levelNumber,
@@ -504,7 +607,7 @@ export async function generateModuleLessonMultiLevel(moduleId, lessonSeed, batch
     return {
       moduleId,
       lessonId: existingLessonId,
-      lessonTitle: lessonSeed?.title || syntheticSkillName,
+      lessonTitle,
       skillId: lessonSeed?.skillId || null,
       generatedLevels,
       totalTokens,

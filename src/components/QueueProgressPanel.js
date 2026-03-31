@@ -23,7 +23,7 @@ export function QueueProgressPanel({ moduleId, isGenerating = false }) {
       try {
         const { data, error } = await supabase
           .from('generation_queue')
-          .select('*, skills(name)')
+          .select('*, skills(name), lessons(title)')
           .eq('module_id', moduleId)
           .order('created_at', { ascending: false });
 
@@ -209,7 +209,7 @@ export function QueueProgressPanel({ moduleId, isGenerating = false }) {
               .filter(e => e.error_message)
               .map(entry => (
                 <div key={entry.id} className="pl-3 border-l border-red-700/50">
-                  <p className="font-semibold">{entry.skills?.name} - Level {entry.level}</p>
+                  <p className="font-semibold">{entry.lessons?.title || entry.skills?.name || `Lesson ${entry.lesson_id || entry.id}`} - Level {entry.level}</p>
                   <p className="text-red-300/80">{entry.error_message}</p>
                 </div>
               ))}
@@ -255,7 +255,7 @@ function QueueEntryItem({ entry }) {
         <div className="flex items-center gap-2">
           <span className="text-lg">{STATUS_ICONS[entry.status]}</span>
           <div>
-            <p className="text-sm font-semibold text-white">{entry.skills?.name}</p>
+            <p className="text-sm font-semibold text-white">{entry.lessons?.title || entry.skills?.name || `Lesson ${entry.lesson_id || entry.id}`}</p>
             <p className={`text-xs ${statusColor.text}`}>{LEVEL_NAMES[entry.level]}</p>
           </div>
         </div>
