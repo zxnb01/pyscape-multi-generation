@@ -14,7 +14,6 @@ const CodeDuelPreview = () => {
         <h2 className="text-xl font-semibold flex items-center">
           <span className="text-primary mr-2">⚔️</span> Code Duel
         </h2>
-        <Link to="/duel" className="text-primary hover:text-primary-light text-sm">View all</Link>
       </div>
       
       <div className="mb-6">
@@ -22,7 +21,7 @@ const CodeDuelPreview = () => {
         <p className="text-sm text-gray-400">Challenge others and climb the leaderboard.</p>
       </div>
       
-      <Link to="/duel/match" className="btn-primary block text-center mb-6">
+      <Link to="/app/duel" className="btn-primary block text-center mb-6">
         Find a Match
       </Link>
       

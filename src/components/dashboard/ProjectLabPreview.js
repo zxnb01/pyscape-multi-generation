@@ -32,7 +32,7 @@ const ProjectLabPreview = () => {
         <h2 className="text-xl font-semibold flex items-center">
           <span className="text-primary mr-2">🏆</span> Project Lab
         </h2>
-        <Link to="/projects" className="text-primary hover:text-primary-light text-sm">View all</Link>
+        <Link to="/app/projects" className="text-primary hover:text-primary-light text-sm">View all</Link>
       </div>
       
       <div className="space-y-3">
@@ -55,7 +55,7 @@ const ProjectLabPreview = () => {
             <div>
               {project.status === 'available' ? (
                 <Link 
-                  to={`/projects/${project.id}`} 
+                  to={`/app/projects/${project.id}`} 
                   className="btn-primary py-1 px-3 text-sm"
                 >
                   Start

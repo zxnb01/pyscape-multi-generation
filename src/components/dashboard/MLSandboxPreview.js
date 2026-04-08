@@ -8,7 +8,6 @@ const MLSandboxPreview = () => {
         <h2 className="text-xl font-semibold flex items-center">
           <span className="text-primary mr-2">🧩</span> ML Sandbox
         </h2>
-        <Link to="/sandbox" className="text-primary hover:text-primary-light text-sm">Open</Link>
       </div>
       
       <div className="text-center py-6">
@@ -17,7 +16,7 @@ const MLSandboxPreview = () => {
         </div>
         <h3 className="text-lg font-medium mb-2">Experiment with Python & ML code</h3>
         <p className="text-gray-400 text-sm mb-4">Instantly in a Jupyter-like environment.</p>
-        <Link to="/sandbox" className="btn-primary inline-block">
+        <Link to="/app/sandbox" className="btn-primary inline-block">
           Launch Sandbox
         </Link>
       </div>

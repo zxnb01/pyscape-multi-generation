@@ -16,6 +16,8 @@ import UniversalCodePlayground from "../components/sandbox/UniversalCodePlaygrou
 import lessonContentService from '../services/lessonContentService';
 import supabase from '../utils/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { awardXP, updateStreak, checkBadges } from "../gamification/gamificationService";
+import XPToast from "../gamification/XPToast";
 
 const LevelPage = () => {
   const { moduleId, lessonId, levelId } = useParams();
@@ -29,6 +31,9 @@ const LevelPage = () => {
   const [progressState, setProgressState] = useState('not_started');
   const [progressSaving, setProgressSaving] = useState(false);
   const [progressMessage, setProgressMessage] = useState('');
+  const [showXP, setShowXP] = useState(false);
+  const [earnedXP, setEarnedXP] = useState(0);
+  
 
   // Fetch level content from Supabase
   useEffect(() => {
@@ -100,45 +105,68 @@ const LevelPage = () => {
   }, [user, lessonId]);
 
   const updateProgressState = async (nextState) => {
-    if (!user?.id) {
-      setProgressMessage('Please sign in to save lesson progress.');
-      return;
+  if (!user?.id) {
+    setProgressMessage('Please sign in to save lesson progress.');
+    return;
+  }
+
+  setProgressSaving(true);
+  setProgressMessage('');
+
+  try {
+    const payload = {
+      user_id: user.id,
+      lesson_id: parseInt(lessonId, 10),
+      state: nextState,
+      updated_at: new Date().toISOString()
+    };
+
+    if (nextState === 'completed') {
+      payload.score = 100;
     }
 
-    setProgressSaving(true);
-    setProgressMessage('');
+    const { error: upsertError } = await supabase
+      .from('progress')
+      .upsert(payload, {
+        onConflict: 'user_id,lesson_id'
+      });
 
-    try {
-      const payload = {
-        user_id: user.id,
-        lesson_id: parseInt(lessonId, 10),
-        state: nextState,
-        updated_at: new Date().toISOString()
-      };
+    if (upsertError) throw upsertError;
 
-      if (nextState === 'completed') {
-        payload.score = 100;
+    // 🔥🔥🔥 ADD THIS BLOCK (MAIN FIX)
+    if (nextState === 'completed') {
+      const xp = level?.xp_reward || 50;
+
+      try {
+        await awardXP(user.id, xp, "level", parseInt(levelId));
+
+          // 🎉 SHOW XP POPUP
+          setEarnedXP(xp);
+          setShowXP(true);
+          setTimeout(() => setShowXP(false), 2000);
+
+          await updateStreak(user.id);
+          await checkBadges(user.id);
+      } catch (err) {
+        console.error("Gamification error:", err);
       }
-
-      const { error: upsertError } = await supabase
-        .from('progress')
-        .upsert(payload, {
-          onConflict: 'user_id,lesson_id'
-        });
-
-      if (upsertError) throw upsertError;
-
-      setProgressState(nextState);
-      setProgressMessage(nextState === 'completed'
-        ? 'Lesson marked as completed. Module unlock will update on Learn page.'
-        : 'Progress saved.');
-    } catch (err) {
-      console.error('Failed to save lesson progress:', err);
-      setProgressMessage('Could not save progress. Please try again.');
-    } finally {
-      setProgressSaving(false);
     }
-  };
+
+    setProgressState(nextState);
+
+    setProgressMessage(
+      nextState === 'completed'
+        ? 'Lesson completed! XP, streak, and badges updated 🎉'
+        : 'Progress saved.'
+    );
+
+  } catch (err) {
+    console.error('Failed to save lesson progress:', err);
+    setProgressMessage('Could not save progress. Please try again.');
+  } finally {
+    setProgressSaving(false);
+  }
+};
 
   // Loading state
   if (loading) {
@@ -192,6 +220,7 @@ const LevelPage = () => {
             </div>
           </div>
         </div>
+          
       </div>
 
       {/* Main Content */}
@@ -620,6 +649,7 @@ const LevelPage = () => {
           </div>
         </div>
       </div>
+      <XPToast xp={earnedXP} show={showXP} />
     </div>
   );
 };

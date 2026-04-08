@@ -242,10 +242,15 @@ const Learn = () => {
           </div>
           
           <div className="flex items-center gap-4 mb-2">
-            <div className="flex-grow bg-dark-lightest h-2 rounded-full">
-              <div className="bg-primary h-2 rounded-full" style={{ width: `${overallProgress}%` }}></div>
+            <div className="flex-grow bg-dark-lightest h-3 rounded-full overflow-hidden">
+              <motion.div 
+                className="bg-gradient-to-r from-primary to-primary-light h-3 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${overallProgress}%` }}
+                transition={{ duration: 1, ease: "easeOut" }}
+              />
             </div>
-            <span className="text-sm font-medium">{overallProgress}%</span>
+            <span className="text-sm font-bold text-primary">{overallProgress}%</span>
           </div>
           
           <p className="text-sm text-gray-400">
@@ -275,16 +280,22 @@ const Learn = () => {
               
               <p className="text-gray-400 text-sm mb-4">{module.description}</p>
               
-              <div className="flex items-center justify-between text-sm mb-3">
+              <div className="flex items-center justify-between text-sm mb-2">
                 <span className="text-gray-400">{module.lessons} lessons</span>
-                <span>{module.progress}% complete</span>
+                <span className="font-medium">{module.progress}% complete</span>
               </div>
               
-              <div className="w-full bg-dark-lightest h-1.5 rounded-full mb-4">
-                <div 
-                  className="bg-primary h-1.5 rounded-full"
-                  style={{ width: `${module.progress}%` }}
-                ></div>
+              <div className="w-full bg-dark-lightest h-2 rounded-full overflow-hidden mb-3">
+                <motion.div 
+                  className="bg-gradient-to-r from-primary to-primary-light h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${module.progress}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+              </div>
+              
+              <div className="text-xs text-gray-500 mb-4">
+                <span>Progress: {module.progress}% • {Math.round((module.progress / 100) * module.lessons)}/{module.lessons} lessons</span>
               </div>
               
               {module.status === 'available' ? (

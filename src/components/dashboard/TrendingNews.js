@@ -8,19 +8,30 @@ const TrendingNews = () => {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const query = "AI OR Artificial Intelligence OR Gemini";
-        const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(
-          query
-        )}&lang=en&max=3&apikey=${process.env.REACT_APP_GNEWS_API_KEY}`;
+        const queries = [
+          "Artificial Intelligence AND (education OR research OR learning OR teaching)",
+          "Python AND (tutorial OR course OR learning OR beginner OR projects OR careers)",
+          "Deep Learning AND (research OR papers OR study OR tutorial OR student)",
+        ];
 
-        const res = await fetch(url);
-        const data = await res.json();
+        let allArticles = [];
+        for (const q of queries) {
+          const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(
+            q
+          )}&lang=en&max=10&apikey=${process.env.REACT_APP_GNEWS_API_KEY}`;
 
-        if (data.articles) {
-          setArticles(data.articles);
-        } else {
-          console.error("GNews API error:", data);
+          const res = await fetch(url);
+          const data = await res.json();
+
+          if (data.articles) {
+            allArticles = [...allArticles, ...data.articles];
+          }
         }
+
+        const uniqueArticles = Array.from(
+          new Map(allArticles.map(a => [a.url, a])).values()
+        );
+        setArticles(uniqueArticles);
       } catch (err) {
         console.error("Error fetching news:", err);
       } finally {
@@ -44,7 +55,7 @@ const TrendingNews = () => {
       </h2>
 
       <div className="flex flex-col gap-4">
-        {articles.map((a, i) => (
+        {articles.slice(0, 3).map((a, i) => (
           <div
             key={i}
             className="flex gap-4 mb-2 bg-gray-700 p-3 rounded-md hover:bg-gray-600 transition cursor-pointer"

@@ -2,19 +2,20 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import useGamification from "../../gamification/useGamification";
 
 const Header = () => {
   const { signOut } = useAuth();
-
   const navigate = useNavigate();
+
+  // 🔥 GAMIFICATION DATA (ADDED)
+  const { xp, streak, badges } = useGamification();
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      // Navigation is handled in the signOut function from AuthContext
     } catch (error) {
       console.error('Error signing out:', error);
-      // Force redirect to login page even if error occurs
       navigate('/auth');
     }
   };
@@ -30,6 +31,7 @@ const Header = () => {
         >
           Dashboard
         </motion.h2>
+
         <motion.p 
           className="text-sm text-gray-400"
           initial={{ opacity: 0, y: -10 }}
@@ -47,19 +49,25 @@ const Header = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
+          {/* XP */}
           <div className="bg-primary-dark px-3 py-1 rounded-full flex items-center text-sm font-medium">
             <span className="mr-1">XP</span>
-            <span>1250</span>
+            <span>{xp}</span>
           </div>
+
+          {/* STREAK */}
           <div className="ml-3 flex items-center">
             <span className="w-2 h-2 bg-accent rounded-full mr-1"></span>
-            <span className="text-sm">5 day streak</span>
+            <span className="text-sm">{streak} day streak</span>
           </div>
+
+          {/* BADGES */}
           <div className="ml-3 flex items-center">
-            <span className="text-sm">3 Badges</span>
+            <span className="text-sm">{badges} Badges</span>
           </div>
         </motion.div>
         
+        {/* SIGN OUT */}
         <motion.div 
           className="ml-4"
           initial={{ opacity: 0, scale: 0.9 }}
