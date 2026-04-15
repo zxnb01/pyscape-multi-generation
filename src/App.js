@@ -31,6 +31,7 @@ function App() {
   console.log('REACT_APP_SUPABASE_URL exists:', Boolean(process.env.REACT_APP_SUPABASE_URL));
   console.log('REACT_APP_SUPABASE_ANON_KEY exists:', Boolean(process.env.REACT_APP_SUPABASE_ANON_KEY));
   console.log('REACT_APP_RAPIDAPI_KEY exists:', Boolean(process.env.REACT_APP_RAPIDAPI_KEY));
+
   return (
     <AuthProvider>
       <Routes>
@@ -40,7 +41,7 @@ function App() {
         {/* Auth page */}
         <Route path="/auth" element={<Auth />} />
 
-        {/* Profile build (protected) */}
+        {/* Profile build */}
         <Route
           path="/profile-build"
           element={
@@ -50,7 +51,7 @@ function App() {
           }
         />
 
-        {/* Topic selection (protected) */}
+        {/* Topic selection */}
         <Route
           path="/topic-selection"
           element={
@@ -60,7 +61,7 @@ function App() {
           }
         />
 
-        {/* Top-level Learn routes (mirror /app/learn/*) so /learn/:moduleId works */}
+        {/* Top-level learn routes */}
         <Route
           path="/learn"
           element={
@@ -94,7 +95,7 @@ function App() {
           }
         />
 
-        {/* Main app with sidebar layout */}
+        {/* Main app layout */}
         <Route
           path="/app"
           element={
@@ -120,10 +121,10 @@ function App() {
           <Route path="all-news" element={<AllNews />} />
         </Route>
 
-        {/* Redirects to /app/dashboard instead of 404 for logged-in users */}
+        {/* Redirect */}
         <Route path="/dashboard" element={<Navigate to="/app" replace />} />
 
-        {/* Debug: Content Generator - for development only */}
+        {/* Debug route */}
         <Route path="/debug/content-generator" element={<DebugContentGenerator />} />
 
         {/* Catch-all */}
@@ -133,4 +134,4 @@ function App() {
   );
 }
 
-export default App;                
+export default App;

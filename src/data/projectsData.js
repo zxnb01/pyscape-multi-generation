@@ -36,11 +36,11 @@ export async function fetchProjects() {
 
     // Transform DB shape → frontend shape
     const diffMap = { beginner: 'Easy', intermediate: 'Medium', advanced: 'Hard' };
-    
+
     const projects = (data || []).map(p => {
       const meta = p.steps || {};
       const mappedDifficulty = diffMap[p.difficulty] || 'Medium';
-      
+
       return {
         id: p.id,
         title: p.title,
@@ -56,7 +56,13 @@ export async function fetchProjects() {
         keywords: meta.keywords || [],
         keyConcepts: meta.keyConcepts || [],
         series: meta.series || [],
-        summary: meta.summary || { headline: '', intro: p.description, whatYoullLearn: [], previewCaption: '' },
+        modes: meta.modes || {},
+        summary: meta.summary || {
+          headline: '',
+          intro: p.description,
+          whatYoullLearn: [],
+          previewCaption: ''
+        },
         steps: {
           onYourOwn: meta.onYourOwn || [],
           someGuidance: meta.someGuidance || [],
@@ -68,12 +74,12 @@ export async function fetchProjects() {
     // Update cache
     cachedProjects = projects;
     cacheTimestamp = Date.now();
-    
+
     console.log(`✅ Successfully loaded ${projects.length} projects`);
     return projects;
   } catch (err) {
     console.error('❌ Error fetching projects from Supabase:', err);
-    
+
     // Return cached data if available, even if expired
     if (cachedProjects) {
       console.warn('📦 Returning cached projects despite network error');
@@ -99,4 +105,3 @@ export async function getProjectById(id) {
  * Returns empty array - components should use fetchProjects()
  */
 export const projects = [];
-

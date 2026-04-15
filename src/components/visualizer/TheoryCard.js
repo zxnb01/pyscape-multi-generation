@@ -15,7 +15,7 @@ const THEORY = {
       'Repeat E → M until centroids converge (Δ < ε)',
     ],
     complexity: {
-      time:  'O(n · K · I · d)',
+      time: 'O(n · K · I · d)',
       space: 'O(n + K)',
     },
     whenToUse: [
@@ -25,10 +25,10 @@ const THEORY = {
       'Pre-processing for anomaly detection',
     ],
     props: [
-      { k: 'Convergence',      v: 'Guaranteed — to a local optimum' },
+      { k: 'Convergence', v: 'Guaranteed — to a local optimum' },
       { k: 'Init sensitivity', v: 'High — randomness affects result' },
-      { k: 'K selection',      v: 'Use Elbow Method or Silhouette score' },
-      { k: 'Objective',        v: 'Minimise WCSS = Σₖ Σ ‖xᵢ − μₖ‖²' },
+      { k: 'K selection', v: 'Use Elbow Method or Silhouette score' },
+      { k: 'Objective', v: 'Minimise WCSS = Σₖ Σ ‖xᵢ − μₖ‖²' },
     ],
   },
 
@@ -44,7 +44,7 @@ const THEORY = {
       'Repeat until |∇L| < ε or step budget is exhausted',
     ],
     complexity: {
-      time:  'O(I · n · d) per epoch',
+      time: 'O(I · n · d) per epoch',
       space: 'O(d)',
     },
     whenToUse: [
@@ -55,9 +55,9 @@ const THEORY = {
     ],
     props: [
       { k: 'Learning rate η', v: 'Most critical hyperparameter' },
-      { k: 'Convex surface',  v: 'Always converges to the global minimum' },
-      { k: 'Non-convex',      v: 'May settle in a local minimum or saddle' },
-      { k: 'Variants',        v: 'SGD · Mini-batch · Adam · RMSProp' },
+      { k: 'Convex surface', v: 'Always converges to the global minimum' },
+      { k: 'Non-convex', v: 'May settle in a local minimum or saddle' },
+      { k: 'Variants', v: 'SGD · Mini-batch · Adam · RMSProp' },
     ],
   },
 
@@ -74,7 +74,7 @@ const THEORY = {
       'Output layer: final predictions or class scores',
     ],
     complexity: {
-      time:  'O(L · N² · samples)',
+      time: 'O(L · N² · samples)',
       space: 'O(L · N² + N · samples)',
     },
     whenToUse: [
@@ -85,9 +85,9 @@ const THEORY = {
     ],
     props: [
       { k: 'Universal approx.', v: 'Can fit any continuous function' },
-      { k: 'ReLU',    v: 'max(0, z) — sparse, fast, preferred' },
+      { k: 'ReLU', v: 'max(0, z) — sparse, fast, preferred' },
       { k: 'Sigmoid', v: '1/(1+e⁻ᶻ) → [0, 1], binary output' },
-      { k: 'Depth',   v: 'More layers = more abstract features' },
+      { k: 'Depth', v: 'More layers = more abstract features' },
     ],
   },
 
@@ -102,7 +102,7 @@ const THEORY = {
       'Quick: pick a pivot → partition around it → recurse on each side',
     ],
     complexity: {
-      time:  'Bubble O(n²)  ·  Merge O(n log n)  ·  Quick O(n log n) avg',
+      time: 'Bubble O(n²)  ·  Merge O(n log n)  ·  Quick O(n log n) avg',
       space: 'Bubble O(1)  ·  Merge O(n)  ·  Quick O(log n)',
     },
     whenToUse: [
@@ -111,9 +111,9 @@ const THEORY = {
       'Bubble: educational only — never in production',
     ],
     props: [
-      { k: 'Stability',   v: 'Bubble ✓  Merge ✓  Quick ✗' },
-      { k: 'In-place',    v: 'Bubble ✓  Merge ✗  Quick ✓' },
-      { k: 'Worst case',  v: 'Quick degrades to O(n²) — use random pivot' },
+      { k: 'Stability', v: 'Bubble ✓  Merge ✓  Quick ✗' },
+      { k: 'In-place', v: 'Bubble ✓  Merge ✗  Quick ✓' },
+      { k: 'Worst case', v: 'Quick degrades to O(n²) — use random pivot' },
       { k: 'Lower bound', v: 'Any comparison sort is Ω(n log n)' },
     ],
   },
@@ -130,7 +130,7 @@ const THEORY = {
       'All use a visited set; backtrack from goal to reconstruct path',
     ],
     complexity: {
-      time:  "Dijkstra O((V + E) log V)  ·  A* O(b^d)",
+      time: "Dijkstra O((V + E) log V)  ·  A* O(b^d)",
       space: 'O(V)',
     },
     whenToUse: [
@@ -141,8 +141,8 @@ const THEORY = {
     ],
     props: [
       { k: "Dijkstra's", v: 'Optimal for non-negative weighted graphs' },
-      { k: 'A*',         v: 'Optimal + faster with admissible heuristic' },
-      { k: 'BFS',        v: 'Optimal for unweighted (uniform-cost) graphs' },
+      { k: 'A*', v: 'Optimal + faster with admissible heuristic' },
+      { k: 'BFS', v: 'Optimal for unweighted (uniform-cost) graphs' },
       { k: 'Admissible', v: 'h(n) must never overestimate true distance' },
     ],
   },
@@ -159,7 +159,7 @@ const THEORY = {
       'Graph: nodes + edges — the most general structure',
     ],
     complexity: {
-      time:  'Stack / Queue O(1) ops  ·  BST O(log n) avg',
+      time: 'Stack / Queue O(1) ops  ·  BST O(log n) avg',
       space: 'O(n) for n elements',
     },
     whenToUse: [
@@ -169,10 +169,10 @@ const THEORY = {
       'Graph: social networks, dependency resolution',
     ],
     props: [
-      { k: 'Stack',  v: 'LIFO  ·  O(1) push / pop' },
-      { k: 'Queue',  v: 'FIFO  ·  O(1) enqueue / dequeue' },
-      { k: 'BST',    v: 'O(log n) search / insert / delete (balanced)' },
-      { k: 'Heap',   v: 'O(log n) insert  ·  O(1) peek-min / max' },
+      { k: 'Stack', v: 'LIFO  ·  O(1) push / pop' },
+      { k: 'Queue', v: 'FIFO  ·  O(1) enqueue / dequeue' },
+      { k: 'BST', v: 'O(log n) search / insert / delete (balanced)' },
+      { k: 'Heap', v: 'O(log n) insert  ·  O(1) peek-min / max' },
     ],
   },
 };
@@ -181,7 +181,8 @@ const THEORY = {
 function SectionHead({ icon, label }) {
   return (
     <h4 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">
-      <span>{icon}</span>{label}
+      <span>{icon}</span>
+      {label}
     </h4>
   );
 }
@@ -199,24 +200,25 @@ export default function TheoryCard({ activeTab }) {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -16 }}
         transition={{ duration: 0.22 }}
-        className="card p-5 space-y-5 sticky top-4 max-h-[88vh] overflow-y-auto"
+        className="card h-full p-5 space-y-5 overflow-y-auto"
         style={{ scrollbarWidth: 'thin' }}
       >
-        {/* ── header ───────────────────────────────────────── */}
         <div>
-          <span className={`inline-block text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border ${data.badgeColor}`}>
+          <span
+            className={`inline-block text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border ${data.badgeColor}`}
+          >
             {data.badge}
           </span>
-          <h2 className="text-white font-bold text-sm mt-2 leading-snug">{data.title}</h2>
+          <h2 className="text-white font-bold text-sm mt-2 leading-snug">
+            {data.title}
+          </h2>
         </div>
 
-        {/* ── what is it ───────────────────────────────────── */}
         <section>
           <SectionHead icon="📖" label="What is it?" />
           <p className="text-gray-300 text-xs leading-relaxed">{data.what}</p>
         </section>
 
-        {/* ── how it works ─────────────────────────────────── */}
         <section>
           <SectionHead icon="⚙️" label="How it works" />
           <ol className="space-y-1.5">
@@ -229,22 +231,24 @@ export default function TheoryCard({ activeTab }) {
           </ol>
         </section>
 
-        {/* ── complexity ───────────────────────────────────── */}
         <section>
           <SectionHead icon="⏱" label="Complexity" />
           <div className="bg-dark-lightest/60 rounded-lg p-3 space-y-1.5 border border-dark-lightest">
             <div className="flex justify-between gap-2 text-xs">
               <span className="text-gray-400 shrink-0">Time</span>
-              <span className="text-primary font-mono text-right">{data.complexity.time}</span>
+              <span className="text-primary font-mono text-right">
+                {data.complexity.time}
+              </span>
             </div>
             <div className="flex justify-between gap-2 text-xs">
               <span className="text-gray-400 shrink-0">Space</span>
-              <span className="text-secondary font-mono text-right">{data.complexity.space}</span>
+              <span className="text-secondary font-mono text-right">
+                {data.complexity.space}
+              </span>
             </div>
           </div>
         </section>
 
-        {/* ── when to use ──────────────────────────────────── */}
         <section>
           <SectionHead icon="🎯" label="When to use" />
           <ul className="space-y-1">
@@ -257,19 +261,20 @@ export default function TheoryCard({ activeTab }) {
           </ul>
         </section>
 
-        {/* ── key properties ───────────────────────────────── */}
         <section>
           <SectionHead icon="🔑" label="Key properties" />
           <div className="space-y-1.5">
             {data.props.map((p, i) => (
-              <div key={i} className="bg-dark-lightest/40 rounded-lg px-3 py-2 border border-dark-lightest">
+              <div
+                key={i}
+                className="bg-dark-lightest/40 rounded-lg px-3 py-2 border border-dark-lightest"
+              >
                 <span className="text-[10px] text-gray-500 block">{p.k}</span>
                 <span className="text-xs text-white leading-snug">{p.v}</span>
               </div>
             ))}
           </div>
         </section>
-
       </motion.div>
     </AnimatePresence>
   );

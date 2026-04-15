@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext'; // make sure this path is correct
 
-const Sidebar = () => {
+const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const { user } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navItems = [
     { to: '/app', icon: '🏠', label: 'Dashboard', exact: true },
@@ -20,34 +19,40 @@ const Sidebar = () => {
 
   return (
     <motion.nav 
-      className="bg-dark-lighter min-h-screen p-4 flex flex-col relative transition-all duration-300"
+      className="bg-dark-lighter fixed left-0 top-0 h-screen p-4 flex flex-col z-50 transition-all duration-300"
       animate={{ width: isCollapsed ? '80px' : '256px' }}
       initial={{ width: '256px' }}
     >
       {/* Logo */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8">
         <motion.h1
-          className="text-2xl font-bold text-primary flex items-center overflow-hidden"
+          className="text-2xl font-bold text-primary cursor-pointer select-none hover:text-primary-light transition-colors"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          <span 
-            className="text-3xl mr-2 cursor-pointer hover:text-primary-light transition-colors"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            C
-          </span>
           <AnimatePresence>
-            {!isCollapsed && (
+            {isCollapsed ? (
               <motion.span
+                key="collapsed"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                PY
+              </motion.span>
+            ) : (
+              <motion.span
+                key="expanded"
                 initial={{ opacity: 0, width: 0 }}
                 animate={{ opacity: 1, width: 'auto' }}
                 exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                Pyscape
+                PYSCAPE
               </motion.span>
             )}
           </AnimatePresence>

@@ -4,7 +4,7 @@ import TutorialOverlay from './TutorialOverlay';
 const KMEANS_TUTORIAL = [
   {
     title: 'Set K — the number of clusters',
-    body: 'Click 2, 3, 4, or 5 to choose how many clusters the algorithm will find. K must be specified upfront — this is a fundamental limitation of K-Means. Choosing the wrong K gives poor clusters.',
+    body: 'Click 2, 3, 4, or 5 to choose how many clusters the algorithm will find. K must be specified upfront — this is a fundamental limitation of K-Means. Choosing the wrong K gives poor clus[...]',
     highlight: 'K buttons — top row of controls',
   },
   {
@@ -14,22 +14,22 @@ const KMEANS_TUTORIAL = [
   },
   {
     title: 'Initialise — click Reset',
-    body: 'Click "↺ Reset" to generate fresh random data and place K centroids at random starting positions. The large labelled circles (C1, C2…) are the centroids. Their starting position affects the final result!',
+    body: 'Click "↺ Reset" to generate fresh random data and place K centroids at random starting positions. The large labelled circles (C1, C2…) are the centroids. Their starting position aff[...]',
     highlight: '"↺ Reset" button — always safe to click',
   },
   {
     title: 'Step through each phase manually',
-    body: 'Click "Step →" once to advance one half-step. The algorithm alternates between two phases: (1) assign every point to its nearest centroid — dots change colour, then (2) move each centroid to the mean of its group.',
+    body: 'Click "Step →" once to advance one half-step. The algorithm alternates between two phases: (1) assign every point to its nearest centroid — dots change colour, then (2) move each ce[...]',
     highlight: '"Step →" button + Phase indicator in the stats bar below controls',
   },
   {
     title: 'Watch the WCSS metric drop',
-    body: 'WCSS (Within-Cluster Sum of Squares) in the stats bar measures cluster tightness. Lower = more compact, better-fitting clusters. Watch it decrease with each full iteration as centroids home in.',
+    body: 'WCSS (Within-Cluster Sum of Squares) in the stats bar measures cluster tightness. Lower = more compact, better-fitting clusters. Watch it decrease with each full iteration as centroids [...]',
     highlight: 'WCSS value in the stats bar',
   },
   {
     title: 'Run all the way to convergence',
-    body: 'Click "▶ Run" to automate all steps. The algorithm stops when centroids barely move between iterations. "✓ Converged!" appears in green. The button then becomes a Reset so you can try again with a different K.',
+    body: 'Click "▶ Run" to automate all steps. The algorithm stops when centroids barely move between iterations. "✓ Converged!" appears in green. The button then becomes a Reset so you can t[...]',
     highlight: '"▶ Run" button — switches to ⏸ Pause while running',
   },
 ];
@@ -263,7 +263,7 @@ export default function KMeansVisualizer() {
 
       {/* ── per-step explainer ─────────────────────────────────────── */}
       {stepLog ? (
-        <div className="rounded-xl border border-dark-lightest bg-dark-lightest/30 p-4 space-y-3 text-sm">
+        <div className="rounded-xl border border-dark-lightest bg-dark shadow-lg p-4 space-y-3 text-sm">
 
           {stepLog.phase === 'assign' ? (
             <>
@@ -374,7 +374,7 @@ export default function KMeansVisualizer() {
       )}
 
       {/* canvas */}
-      <div className="rounded-xl overflow-hidden border border-dark-lightest bg-dark" style={{ lineHeight: 0 }}>
+      <div className="rounded-xl overflow-hidden border border-dark-lightest bg-dark shadow-lg" style={{ lineHeight: 0 }}>
         <svg width="100%" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} style={{ display: 'block' }}>
           {/* voronoi-ish background cells — simple distance fill */}
           {centroids.map((c, ci) => null /* skip — too expensive without a lib */)}
@@ -416,7 +416,7 @@ export default function KMeansVisualizer() {
       </div>
 
       {/* explanation */}
-      <div className="bg-dark-lightest/50 rounded-xl p-4 border border-dark-lightest text-sm text-gray-400 leading-relaxed">
+      <div className="bg-dark shadow-lg rounded-xl p-4 border border-dark-lightest text-sm text-gray-400 leading-relaxed">
         <span className="text-white font-semibold">How K-Means works: </span>
         Place <span className="text-primary">K centroids</span> randomly →
         assign each point to its nearest centroid →
