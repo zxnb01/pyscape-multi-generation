@@ -189,8 +189,41 @@ INSERT INTO public.projects (id, title, description, difficulty, estimated_hours
  }'::jsonb,
  NULL, 120, 500, true);
 
+ ,
+(6, 'Real-time Dashboard with WebSockets',
+ 'Build a real-time dashboard using WebSockets and live streaming data.',
+ 'intermediate', 2,
+ '{
+   "onYourOwn": [],
+   "someGuidance": [],
+   "stepByStep": [],
+   "category": "Data Visualization",
+   "keywords": ["WebSockets", "Real-time", "Dash"],
+   "keyConcepts": ["WebSockets", "Streaming", "Live Data", "Realtime UI"],
+   "timeEstimate": "90 min",
+   "completions": 623,
+   "difficultyLabel": "Intermediate",
+   "status": "available",
+   "series": [
+     {"id": 5, "title": "Data Visualization Dashboard", "current": false},
+     {"id": 6, "title": "Real-time Dashboard with WebSockets", "current": true}
+   ],
+   "summary": {
+     "headline": "Make your dashboard live 🚀",
+     "intro": "Build a real-time dashboard that updates live data using WebSockets and streaming events.",
+     "whatYoullLearn": [
+       {"emoji": "🔌", "text": "Understand WebSocket communication"},
+       {"emoji": "📡", "text": "Stream live data to a dashboard"},
+       {"emoji": "⚡", "text": "Update UI dynamically in real time"},
+       {"emoji": "🔄", "text": "Handle reconnects and continuous updates"}
+     ],
+     "previewCaption": "A live dashboard receiving and rendering streaming updates in real time."
+   }
+ }'::jsonb,
+ NULL, 180, 700, true)
+
 -- Reset sequence
-SELECT setval('projects_id_seq', 5);
+SELECT setval('projects_id_seq', 6);
 
 -- ============================================
 -- VERIFICATION

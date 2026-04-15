@@ -3,18 +3,101 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProjectById } from '../data/projectsData';
 
+/* ─── preview fallbacks ────────────────────────────────────── */
+const PREVIEW_FALLBACKS = {
+  'Sentiment Analyzer': {
+    fileName: 'sentiment_analyzer.py',
+    previewCode: `from analyzer import classify_sentiment
+
+texts = [
+    "This movie was absolutely fantastic! 🎬",
+    "Terrible film, complete waste of time. 😤",
+    "It was okay, nothing special.",
+]
+
+for text in texts:
+    print(classify_sentiment(text))`,
+    previewOutput: [
+      {
+        icon: '✓',
+        iconClass: 'text-green-400',
+        label: 'positive',
+        labelClass: 'text-green-300',
+        text: '"This movie was absolutely fantastic!"',
+      },
+      {
+        icon: '✗',
+        iconClass: 'text-red-400',
+        label: 'negative',
+        labelClass: 'text-red-300',
+        text: '"Terrible film, complete waste of time."',
+      },
+      {
+        icon: '~',
+        iconClass: 'text-gray-400',
+        label: 'neutral',
+        labelClass: 'text-gray-300',
+        text: '"It was okay, nothing special."',
+      },
+    ],
+  },
+
+  'Data Visualization Dashboard': {
+    fileName: 'covid_dashboard.py',
+    previewCode: `import pandas as pd
+import matplotlib.pyplot as plt
+
+data = pd.read_csv("covid_data.csv")
+
+print(data.head())
+
+plt.figure(figsize=(8,4))
+plt.plot(data["date"], data["cases"], color="blue")
+
+plt.title("COVID-19 Cases Over Time")
+plt.xlabel("Date")
+plt.ylabel("Cases")
+
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()`,
+    previewOutput: [],
+  },
+
+  'Chatbot with Transformer': {
+    fileName: 'chatbot_transformer.py',
+    previewCode: `from transformers import pipeline
+
+chatbot = pipeline("text-generation", model="gpt2")
+
+prompt = "User: Hello, how are you?\\nBot:"
+response = chatbot(prompt, max_length=50)
+
+print(response[0]["generated_text"])`,
+    previewOutput: [
+      {
+        icon: '💬',
+        iconClass: 'text-primary',
+        label: 'bot',
+        labelClass: 'text-primary',
+        text: '"Hello! I’m doing well. How can I help you today?"',
+      },
+    ],
+  },
+};
+
 /* ─── tiny helpers ─────────────────────────────────────────── */
 
 const difficultyColors = {
-  Easy:   'bg-green-700/30  text-green-400  border-green-700/40',
+  Easy: 'bg-green-700/30 text-green-400 border-green-700/40',
   Medium: 'bg-yellow-700/30 text-yellow-400 border-yellow-700/40',
-  Hard:   'bg-red-700/30    text-red-400    border-red-700/40',
+  Hard: 'bg-red-700/30 text-red-400 border-red-700/40',
 };
 
 const difficultyDot = {
-  Easy:   'bg-green-400',
+  Easy: 'bg-green-400',
   Medium: 'bg-yellow-400',
-  Hard:   'bg-red-400',
+  Hard: 'bg-red-400',
 };
 
 const MODES = [
@@ -47,18 +130,26 @@ const MODES = [
 /* ─── inline "code block" renderer ─────────────────────────── */
 function renderContent(text) {
   if (!text) return null;
-  const parts = text.split(/(```[\s\S]*?```)/g);
+
+  const normalizedText = String(text).replace(/\\n/g, '\n');
+  const parts = normalizedText.split(/(```[\s\S]*?```)/g);
+
   return parts.map((part, i) => {
     if (part.startsWith('```') && part.endsWith('```')) {
       const inner = part.slice(3, -3);
       const newline = inner.indexOf('\n');
       const code = newline !== -1 ? inner.slice(newline + 1) : inner;
+
       return (
-        <pre key={i} className="my-3 bg-dark rounded-lg p-4 overflow-x-auto text-sm font-mono text-gray-200 border border-dark-lightest">
+        <pre
+          key={i}
+          className="my-3 bg-dark rounded-lg p-4 overflow-x-auto text-sm font-mono text-gray-200 border border-dark-lightest"
+        >
           <code>{code}</code>
         </pre>
       );
     }
+
     return (
       <p key={i} className="mb-2 text-gray-300 leading-relaxed whitespace-pre-wrap">
         {part}
@@ -75,9 +166,11 @@ export default function ProjectDetailPage() {
   const [openStep, setOpenStep] = useState(null);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [completedSteps, setCompletedSteps] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
       const p = await getProjectById(id);
       if (!cancelled) {
@@ -85,7 +178,10 @@ export default function ProjectDetailPage() {
         setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (loading) {
@@ -109,24 +205,100 @@ export default function ProjectDetailPage() {
       <div className="flex flex-col items-center justify-center min-h-screen text-center px-4">
         <div className="text-6xl mb-4">🔍</div>
         <h1 className="text-2xl font-bold mb-2">Project not found</h1>
-        <p className="text-gray-400 mb-6">This project doesn't exist yet — check back soon!</p>
-        <Link to="/app/projects" className="btn-primary">← Back to Projects</Link>
+        <p className="text-gray-400 mb-6">
+          This project doesn't exist yet — check back soon!
+        </p>
+        <Link to="/app/projects" className="btn-primary">
+          ← Back to Projects
+        </Link>
       </div>
     );
   }
 
   const {
-    title, tagline, difficulty, difficultyLabel, xp, completions,
-    timeEstimate, keywords, keyConcepts, series, summary, steps, status,
+    title,
+    tagline,
+    difficulty = 'Medium',
+    difficultyLabel = 'Medium',
+    xp = 0,
+    completions = 0,
+    timeEstimate = '',
+    keywords = [],
+    keyConcepts = [],
+    series = [],
+    summary = {},
+    steps = {},
+    status,
+    modes = {},
   } = project;
 
   const isLocked = status === 'locked';
+  const fallback = PREVIEW_FALLBACKS[title] || {};
 
-  /* ──────────────────────────────────────────────────────────── */
+  const previewFileName = summary?.fileName || fallback.fileName || 'script.py';
+
+  const previewCode =
+    summary?.previewCode?.replace(/\\n/g, '\n') ||
+    fallback.previewCode ||
+    'No preview available';
+
+  const previewOutput =
+    Array.isArray(summary?.previewOutput) && summary.previewOutput.length > 0
+      ? summary.previewOutput
+      : Array.isArray(fallback.previewOutput)
+      ? fallback.previewOutput
+      : [];
+
+  const whatYoullLearn = Array.isArray(summary?.whatYoullLearn)
+    ? summary.whatYoullLearn
+    : [];
+
+  const onYourOwnSteps = Array.isArray(steps?.onYourOwn) ? steps.onYourOwn : [];
+  const someGuidanceSteps = Array.isArray(steps?.someGuidance) ? steps.someGuidance : [];
+  const stepByStepSteps = Array.isArray(steps?.stepByStep) ? steps.stepByStep : [];
+
+  const modeMeta = {
+    onYourOwn: {
+      title: modes?.onYourOwn?.title || 'On Your Own',
+      description: modes?.onYourOwn?.description || 'No hints — go solo.',
+    },
+    someGuidance: {
+      title: modes?.someGuidance?.title || 'Some Guidance',
+      description: modes?.someGuidance?.description || 'Steps + hints for each.',
+    },
+    stepByStep: {
+      title: modes?.stepByStep?.title || 'Step-by-Step',
+      description: modes?.stepByStep?.description || 'Full walkthrough with code.',
+    },
+  };
+
+  const currentSteps =
+    selectedMode === 'onYourOwn'
+      ? onYourOwnSteps
+      : selectedMode === 'someGuidance'
+      ? someGuidanceSteps
+      : selectedMode === 'stepByStep'
+      ? stepByStepSteps
+      : [];
+
+  const totalSteps = currentSteps.length;
+  const completedCount = completedSteps.length;
+  const earnedXP =
+    totalSteps > 0 ? Math.round((completedCount / totalSteps) * xp) : 0;
+  const progressPercent =
+    totalSteps > 0 ? (completedCount / totalSteps) * 100 : 0;
+  const isProjectCompleted = totalSteps > 0 && completedCount === totalSteps;
+
+  const toggleCompletedStep = (stepId) => {
+    setCompletedSteps((prev) =>
+      prev.includes(stepId)
+        ? prev.filter((id) => id !== stepId)
+        : [...prev, stepId]
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto pb-20">
-
-      {/* ── BACK NAV ── */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
@@ -136,32 +308,42 @@ export default function ProjectDetailPage() {
           onClick={() => navigate('/app/projects')}
           className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition-colors group"
         >
-          <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg
+            className="w-4 h-4 group-hover:-translate-x-1 transition-transform"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
           Back to Project Labs
         </button>
       </motion.div>
 
-      {/* ── HERO ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
         className="relative rounded-2xl overflow-hidden mb-8 bg-gradient-to-br from-dark-lighter via-dark-lighter to-dark border border-dark-lightest"
       >
-        {/* decorative glow */}
         <div className="absolute top-0 left-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-72 h-72 bg-secondary/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 pointer-events-none" />
 
         <div className="relative p-8 md:p-10">
-          {/* completions badge */}
           <div className="flex items-center gap-2 text-gray-400 text-sm mb-4">
             <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-white font-semibold">{completions.toLocaleString()}+</span>
-            <span>completed</span>
+            <span className="text-white font-semibold">
+              {Number(completions).toLocaleString()}+
+            </span>
+            <span>users completed</span>
+
             {isLocked && (
               <span className="ml-auto flex items-center gap-1 text-yellow-400 text-xs border border-yellow-700/40 bg-yellow-700/20 px-2 py-1 rounded-full">
                 🔒 Locked — complete earlier projects first
@@ -172,20 +354,29 @@ export default function ProjectDetailPage() {
           <h1 className="text-3xl md:text-4xl font-bold mb-3 text-white">{title}</h1>
           <p className="text-gray-300 text-lg mb-6 max-w-2xl">{tagline}</p>
 
-          {/* badges row */}
           <div className="flex flex-wrap gap-3 items-center">
-            <span className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border font-medium ${difficultyColors[difficulty]}`}>
-              <span className={`w-2 h-2 rounded-full ${difficultyDot[difficulty]}`}/>
+            <span
+              className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border font-medium ${difficultyColors[difficulty] || difficultyColors.Medium}`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${difficultyDot[difficulty] || difficultyDot.Medium}`}
+              />
               {difficultyLabel}
             </span>
+
             <span className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border border-primary/30 bg-primary/20 text-primary font-semibold">
               ⚡ +{xp} XP
             </span>
+
             <span className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border border-dark-lightest text-gray-300">
               ⏱ {timeEstimate}
             </span>
-            {keywords.map(k => (
-              <span key={k} className="text-sm px-3 py-1.5 rounded-full bg-dark-lightest text-gray-300">
+
+            {keywords.map((k) => (
+              <span
+                key={k}
+                className="text-sm px-3 py-1.5 rounded-full bg-dark-lightest text-gray-300"
+              >
                 {k}
               </span>
             ))}
@@ -193,13 +384,8 @@ export default function ProjectDetailPage() {
         </div>
       </motion.div>
 
-      {/* ── MAIN GRID ── */}
       <div className="flex flex-col lg:flex-row gap-8">
-
-        {/* ── LEFT: CONTENT ── */}
         <div className="flex-1 min-w-0 space-y-8">
-
-          {/* 30-second summary */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -210,14 +396,21 @@ export default function ProjectDetailPage() {
               <span className="text-xl">⚡</span>
               <h2 className="text-lg font-bold text-white">30-second Summary</h2>
             </div>
-            <h3 className="text-primary font-semibold text-base mb-3">{summary.headline}</h3>
-            <p className="text-gray-300 leading-relaxed mb-6">{summary.intro}</p>
+
+            <h3 className="text-primary font-semibold text-base mb-3">
+              {summary?.headline || 'Project Overview'}
+            </h3>
+
+            <p className="text-gray-300 leading-relaxed mb-6">
+              {summary?.intro || 'No summary available.'}
+            </p>
 
             <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
               What you'll learn
             </p>
+
             <ul className="space-y-2">
-              {summary.whatYoullLearn.map((item, i) => (
+              {whatYoullLearn.map((item, i) => (
                 <motion.li
                   key={i}
                   initial={{ opacity: 0, x: -10 }}
@@ -232,42 +425,45 @@ export default function ProjectDetailPage() {
             </ul>
           </motion.section>
 
-          {/* Preview "image" */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
             <div className="rounded-xl overflow-hidden border border-dark-lightest bg-dark-lighter">
-              {/* mock terminal / preview */}
               <div className="bg-dark flex items-center gap-2 px-4 py-2 border-b border-dark-lightest">
                 <span className="w-3 h-3 rounded-full bg-red-500/70" />
                 <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
                 <span className="w-3 h-3 rounded-full bg-green-500/70" />
-                <span className="ml-2 text-xs text-gray-500 font-mono">sentiment_analyzer.py</span>
+                <span className="ml-2 text-xs text-gray-500 font-mono">
+                  {previewFileName}
+                </span>
               </div>
-              <div className="p-6 font-mono text-sm space-y-1">
-                <p><span className="text-purple-400">from</span> <span className="text-primary">analyzer</span> <span className="text-purple-400">import</span> classify_sentiment</p>
-                <p className="text-gray-600">{'  '}</p>
-                <p><span className="text-yellow-400">texts</span> = [</p>
-                <p className="ml-6 text-green-400">"This movie was absolutely fantastic! 🎬",</p>
-                <p className="ml-6 text-red-400">"Terrible film, complete waste of time. 😤",</p>
-                <p className="ml-6 text-gray-300">"It was okay, nothing special.",</p>
-                <p>]</p>
-                <p className="text-gray-600">{'  '}</p>
-                <p><span className="text-purple-400">for</span> <span className="text-yellow-400">text</span> <span className="text-purple-400">in</span> texts:</p>
-                <p className="ml-6"><span className="text-blue-400">print</span>(<span className="text-gray-300">classify_sentiment(text)</span>)</p>
-                <div className="mt-4 pt-4 border-t border-dark-lightest text-gray-400 space-y-1">
-                  <p><span className="text-green-400">✓</span> <span className="text-green-300">positive</span> — "This movie was absolutely fantastic!"</p>
-                  <p><span className="text-red-400">✗</span> <span className="text-red-300">negative</span> — "Terrible film, complete waste of time."</p>
-                  <p><span className="text-gray-400">~</span> <span className="text-gray-300">neutral</span>  — "It was okay, nothing special."</p>
-                </div>
+
+              <div className="p-6 font-mono text-sm">
+                <pre className="text-gray-200 whitespace-pre-wrap leading-relaxed bg-dark rounded-lg p-4 border border-dark-lightest overflow-x-auto">
+                  {previewCode}
+                </pre>
+
+                {previewOutput.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-dark-lightest text-gray-400 space-y-1">
+                    {previewOutput.map((item, i) => (
+                      <p key={i}>
+                        <span className={item.iconClass}>{item.icon}</span>{' '}
+                        <span className={item.labelClass}>{item.label}</span>{' '}
+                        — {item.text}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-            <p className="text-center text-gray-500 text-sm mt-2 italic">{summary.previewCaption}</p>
+
+            <p className="text-center text-gray-500 text-sm mt-2 italic">
+              {summary?.previewCaption || ''}
+            </p>
           </motion.section>
 
-          {/* ── CHOOSE YOUR MODE ── */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -278,6 +474,7 @@ export default function ProjectDetailPage() {
               <span className="text-xl">🎮</span>
               <h2 className="text-lg font-bold text-white">Choose Your Mode</h2>
             </div>
+
             <p className="text-gray-400 text-sm mb-6">
               Everyone learns differently — pick the style that fits you best.
             </p>
@@ -285,10 +482,15 @@ export default function ProjectDetailPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               {MODES.map((mode) => {
                 const isActive = selectedMode === mode.key;
+
                 return (
                   <motion.button
                     key={mode.key}
-                    onClick={() => { setSelectedMode(mode.key); setOpenStep(null); }}
+                    onClick={() => {
+                      setSelectedMode(mode.key);
+                      setOpenStep(null);
+                      setCompletedSteps([]);
+                    }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`
@@ -300,9 +502,14 @@ export default function ProjectDetailPage() {
                     {isActive && (
                       <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-white animate-pulse" />
                     )}
+
                     <span className="block text-2xl mb-2">{mode.icon}</span>
-                    <span className="block font-semibold text-white mb-1">{mode.label}</span>
-                    <span className="block text-xs text-gray-400">{mode.subtitle}</span>
+                    <span className="block font-semibold text-white mb-1">
+                      {modeMeta[mode.key].title}
+                    </span>
+                    <span className="block text-xs text-gray-400">
+                      {modeMeta[mode.key].description}
+                    </span>
                   </motion.button>
                 );
               })}
@@ -314,7 +521,6 @@ export default function ProjectDetailPage() {
               </div>
             )}
 
-            {/* ── MODE CONTENT ── */}
             <AnimatePresence mode="wait">
               {selectedMode && !isLocked && (
                 <motion.div
@@ -326,43 +532,76 @@ export default function ProjectDetailPage() {
                   className="mt-2"
                 >
                   <div className="border-t border-dark-lightest pt-6">
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-gray-300">
+                          Progress: {completedCount}/{totalSteps} steps
+                        </span>
+                        <span className="text-primary font-semibold">
+                          Earned XP: {earnedXP}/{xp}
+                        </span>
+                      </div>
 
-                    {/* ON YOUR OWN */}
+                      <div className="w-full h-2 bg-dark rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-300"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+
                     {selectedMode === 'onYourOwn' && (
                       <div>
                         <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-                          🧗 Your Checklist
+                          🧗 {modeMeta.onYourOwn.title}
                         </h3>
                         <p className="text-gray-400 text-sm mb-4">
-                          No hints here — these are the core steps. Tackle them in any order you like.
+                          {modeMeta.onYourOwn.description}
                         </p>
+
                         <ul className="space-y-3">
-                          {steps.onYourOwn.map((step, i) => (
-                            <motion.li
-                              key={i}
-                              initial={{ opacity: 0, x: -8 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.05 }}
-                              className="flex items-start gap-3 group"
-                            >
-                              <span className="flex-shrink-0 w-6 h-6 rounded-full border border-dark-lightest bg-dark text-gray-500 text-xs flex items-center justify-center font-mono group-hover:border-primary group-hover:text-primary transition-colors">
-                                {i + 1}
-                              </span>
-                              <span className="text-gray-300 pt-0.5">{step}</span>
-                            </motion.li>
-                          ))}
+                          {onYourOwnSteps.map((step, i) => {
+                            const isDone = completedSteps.includes(i);
+
+                            return (
+                              <motion.li
+                                key={i}
+                                initial={{ opacity: 0, x: -8 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.05 }}
+                                className="flex items-start gap-3 group cursor-pointer"
+                                onClick={() => toggleCompletedStep(i)}
+                              >
+                                <span
+                                  className={`flex-shrink-0 w-6 h-6 rounded-full border text-xs flex items-center justify-center font-mono transition-colors ${
+                                    isDone
+                                      ? 'bg-primary text-white border-primary'
+                                      : 'border-dark-lightest bg-dark text-gray-500 group-hover:border-primary group-hover:text-primary'
+                                  }`}
+                                >
+                                  {isDone ? '✓' : i + 1}
+                                </span>
+                                <span className={`pt-0.5 ${isDone ? 'text-white' : 'text-gray-300'}`}>
+                                  {step}
+                                </span>
+                              </motion.li>
+                            );
+                          })}
                         </ul>
                       </div>
                     )}
 
-                    {/* SOME GUIDANCE */}
                     {selectedMode === 'someGuidance' && (
                       <div>
                         <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-                          🗺️ Guided Steps
+                          🗺️ {modeMeta.someGuidance.title}
                         </h3>
+                        <p className="text-gray-400 text-sm mb-4">
+                          {modeMeta.someGuidance.description}
+                        </p>
+
                         <div className="space-y-3">
-                          {steps.someGuidance.map((item, i) => (
+                          {someGuidanceSteps.map((item, i) => (
                             <motion.div
                               key={i}
                               initial={{ opacity: 0, y: 6 }}
@@ -371,7 +610,12 @@ export default function ProjectDetailPage() {
                               className="border border-dark-lightest rounded-xl overflow-hidden"
                             >
                               <button
-                                onClick={() => setOpenStep(openStep === i ? null : i)}
+                                onClick={() => {
+                                  setOpenStep(openStep === i ? null : i);
+                                  if (!completedSteps.includes(i)) {
+                                    setCompletedSteps((prev) => [...prev, i]);
+                                  }
+                                }}
                                 className="w-full flex items-center justify-between p-4 text-left hover:bg-dark-lightest/30 transition-colors"
                               >
                                 <div className="flex items-center gap-3">
@@ -380,13 +624,24 @@ export default function ProjectDetailPage() {
                                   </span>
                                   <span className="font-medium text-white">{item.title}</span>
                                 </div>
+
                                 <svg
-                                  className={`w-4 h-4 text-gray-400 transition-transform ${openStep === i ? 'rotate-180' : ''}`}
-                                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                  className={`w-4 h-4 text-gray-400 transition-transform ${
+                                    openStep === i ? 'rotate-180' : ''
+                                  }`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
                                 >
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 9l-7 7-7-7"
+                                  />
                                 </svg>
                               </button>
+
                               <AnimatePresence>
                                 {openStep === i && (
                                   <motion.div
@@ -410,14 +665,17 @@ export default function ProjectDetailPage() {
                       </div>
                     )}
 
-                    {/* STEP BY STEP */}
                     {selectedMode === 'stepByStep' && (
                       <div>
                         <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-                          📖 Full Walkthrough
+                          📖 {modeMeta.stepByStep.title}
                         </h3>
+                        <p className="text-gray-400 text-sm mb-4">
+                          {modeMeta.stepByStep.description}
+                        </p>
+
                         <div className="space-y-4">
-                          {steps.stepByStep.map((item, i) => (
+                          {stepByStepSteps.map((item, i) => (
                             <motion.div
                               key={i}
                               initial={{ opacity: 0, y: 6 }}
@@ -426,7 +684,12 @@ export default function ProjectDetailPage() {
                               className="border border-dark-lightest rounded-xl overflow-hidden"
                             >
                               <button
-                                onClick={() => setOpenStep(openStep === i ? null : i)}
+                                onClick={() => {
+                                  setOpenStep(openStep === i ? null : i);
+                                  if (!completedSteps.includes(i)) {
+                                    setCompletedSteps((prev) => [...prev, i]);
+                                  }
+                                }}
                                 className="w-full flex items-center justify-between p-4 text-left hover:bg-dark-lightest/30 transition-colors"
                               >
                                 <div className="flex items-center gap-3">
@@ -435,13 +698,24 @@ export default function ProjectDetailPage() {
                                   </span>
                                   <span className="font-medium text-white">{item.title}</span>
                                 </div>
+
                                 <svg
-                                  className={`w-4 h-4 text-gray-400 transition-transform ${openStep === i ? 'rotate-180' : ''}`}
-                                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                  className={`w-4 h-4 text-gray-400 transition-transform ${
+                                    openStep === i ? 'rotate-180' : ''
+                                  }`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
                                 >
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 9l-7 7-7-7"
+                                  />
                                 </svg>
                               </button>
+
                               <AnimatePresence>
                                 {openStep === i && (
                                   <motion.div
@@ -462,44 +736,68 @@ export default function ProjectDetailPage() {
                         </div>
                       </div>
                     )}
-
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </motion.section>
-
         </div>
 
-        {/* ── RIGHT SIDEBAR ── */}
         <motion.aside
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.15, duration: 0.4 }}
           className="w-full lg:w-72 xl:w-80 flex-shrink-0 space-y-4"
         >
-
-          {/* Meta card */}
           <div className="card space-y-4">
-            <MetaRow icon="⚙️" label="DIFFICULTY" value={difficultyLabel} valueClass={`font-semibold ${difficultyColors[difficulty].split(' ')[1]}`} />
-            <MetaRow icon="⏱" label="TIME"       value={timeEstimate}   valueClass="text-white font-semibold" />
-            <MetaRow icon="⚡" label="XP REWARD"  value={`+${xp} XP`}   valueClass="text-primary font-semibold" />
+            <MetaRow
+              icon="⚙️"
+              label="DIFFICULTY"
+              value={difficultyLabel}
+              valueClass={`font-semibold ${
+                (difficultyColors[difficulty] || difficultyColors.Medium).split(' ')[1]
+              }`}
+            />
+            <MetaRow
+              icon="⏱"
+              label="TIME"
+              value={timeEstimate}
+              valueClass="text-white font-semibold"
+            />
+            <MetaRow
+              icon="⚡"
+              label="XP REWARD"
+              value={isProjectCompleted ? `Claimed +${xp} XP` : `+${xp} XP`}
+              valueClass={isProjectCompleted ? 'text-green-400 font-semibold' : 'text-primary font-semibold'}
+            />
+            <MetaRow
+              icon="⭐"
+              label="XP EARNED"
+              value={`${earnedXP}/${xp} XP`}
+              valueClass={isProjectCompleted ? 'text-green-400 font-semibold' : 'text-white font-semibold'}
+            />
           </div>
 
-          {/* Series */}
           {series.length > 1 && (
             <div className="card">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <span>🔗</span> Related Projects
               </p>
+
               <ul className="space-y-2">
                 {series.map((s, i) => (
                   <li key={s.id}>
                     {s.current ? (
                       <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/20">
-                        <span className="w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center font-bold flex-shrink-0">{i + 1}</span>
-                        <span className="text-primary text-sm font-medium truncate">{s.title}</span>
-                        <span className="ml-auto text-xs text-primary/60 flex-shrink-0">here</span>
+                        <span className="w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
+                          {i + 1}
+                        </span>
+                        <span className="text-primary text-sm font-medium truncate">
+                          {s.title}
+                        </span>
+                        <span className="ml-auto text-xs text-primary/60 flex-shrink-0">
+                          here
+                        </span>
                       </div>
                     ) : (
                       <Link
@@ -509,7 +807,9 @@ export default function ProjectDetailPage() {
                         <span className="w-5 h-5 rounded-full border border-dark-lightest text-gray-500 text-xs flex items-center justify-center font-bold flex-shrink-0 group-hover:border-primary group-hover:text-primary transition-colors">
                           {i + 1}
                         </span>
-                        <span className="text-gray-300 text-sm truncate group-hover:text-white transition-colors">{s.title}</span>
+                        <span className="text-gray-300 text-sm truncate group-hover:text-white transition-colors">
+                          {s.title}
+                        </span>
                       </Link>
                     )}
                   </li>
@@ -518,21 +818,23 @@ export default function ProjectDetailPage() {
             </div>
           )}
 
-          {/* Key concepts */}
           <div className="card">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
               <span>🧠</span> Key Concepts
             </p>
+
             <div className="flex flex-wrap gap-2">
-              {keyConcepts.map(c => (
-                <span key={c} className="text-xs bg-dark px-2.5 py-1 rounded-full border border-dark-lightest text-gray-300 hover:border-primary/40 hover:text-primary transition-colors">
+              {keyConcepts.map((c) => (
+                <span
+                  key={c}
+                  className="text-xs bg-dark px-2.5 py-1 rounded-full border border-dark-lightest text-gray-300 hover:border-primary/40 hover:text-primary transition-colors"
+                >
                   {c}
                 </span>
               ))}
             </div>
           </div>
 
-          {/* CTA */}
           {!isLocked && !selectedMode && (
             <motion.div
               initial={{ opacity: 0, scale: 0.97 }}
@@ -542,16 +844,20 @@ export default function ProjectDetailPage() {
             >
               <p className="text-sm text-gray-300 mb-3">Ready to build?</p>
               <button
-                onClick={() => { setSelectedMode('stepByStep'); document.querySelector('.card:nth-child(3)')?.scrollIntoView({ behavior: 'smooth' }); }}
+                onClick={() => {
+                  setSelectedMode('stepByStep');
+                  setCompletedSteps([]);
+                  document
+                    .querySelector('.card:nth-child(3)')
+                    ?.scrollIntoView({ behavior: 'smooth' });
+                }}
                 className="btn-primary w-full"
               >
                 Start Project →
               </button>
             </motion.div>
           )}
-
         </motion.aside>
-
       </div>
     </div>
   );
@@ -562,7 +868,8 @@ function MetaRow({ icon, label, value, valueClass }) {
   return (
     <div className="flex items-center justify-between">
       <span className="flex items-center gap-2 text-xs text-gray-500 uppercase tracking-wider font-semibold">
-        <span>{icon}</span>{label}
+        <span>{icon}</span>
+        {label}
       </span>
       <span className={`text-sm ${valueClass}`}>{value}</span>
     </div>

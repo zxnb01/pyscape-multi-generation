@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+
 import SortingVisualizer from '../components/visualizer/SortingVisualizer';
 import PathfindingVisualizer from '../components/visualizer/PathfindingVisualizer';
 import DataStructureVisualizer from '../components/visualizer/DataStructureVisualizer';
@@ -9,134 +10,64 @@ import NeuralNetworkVisualizer from '../components/visualizer/NeuralNetworkVisua
 import TheoryCard from '../components/visualizer/TheoryCard';
 
 const tabs = [
-  {
-    id: 'kmeans',
-    label: 'K-Means Clustering',
-    icon: '⬡',
-    badge: 'ML',
-    badgeColor: 'bg-primary/20 text-primary',
-  },
-  {
-    id: 'gradient',
-    label: 'Gradient Descent',
-    icon: '📉',
-    badge: 'ML',
-    badgeColor: 'bg-primary/20 text-primary',
-  },
-  {
-    id: 'neural',
-    label: 'Neural Network',
-    icon: '🧠',
-    badge: 'ML',
-    badgeColor: 'bg-primary/20 text-primary',
-  },
-  {
-    id: 'sorting',
-    label: 'Sorting',
-    icon: '⇅',
-    badge: 'CS',
-    badgeColor: 'bg-dark-lightest text-gray-400',
-  },
-  {
-    id: 'pathfinding',
-    label: 'Pathfinding',
-    icon: '🗺',
-    badge: 'CS',
-    badgeColor: 'bg-dark-lightest text-gray-400',
-  },
-  {
-    id: 'dataStructure',
-    label: 'Data Structures',
-    icon: '🌳',
-    badge: 'CS',
-    badgeColor: 'bg-dark-lightest text-gray-400',
-  },
+  { id: 'kmeans', label: 'K-Means', icon: '📊' },
+  { id: 'gradient', label: 'Gradient Descent', icon: '📉' },
+  { id: 'neural', label: 'Neural Network', icon: '🧠' },
+  { id: 'sorting', label: 'Sorting', icon: '🔢' },
+  { id: 'pathfinding', label: 'Pathfinding', icon: '🧭' },
+  { id: 'dataStructure', label: 'Data Structures', icon: '🌳' },
 ];
 
-const descriptions = {
-  kmeans:      'Watch K-Means live: points get assigned to their nearest centroid, then centroids move to the mean of their cluster — repeat until convergence.',
-  gradient:    'See a "ball" roll down a loss surface step-by-step. Adjust learning rate and watch how it affects convergence speed and oscillation.',
-  neural:      'Drag input sliders and fire a forward pass through a fully-connected network. Watch activations light up layer by layer.',
-  sorting:     'Visualise bubble, merge and quick sort step-by-step on random arrays.',
-  pathfinding: 'Dijkstra\'s and A* pathfinding on an interactive grid — coming soon.',
-  dataStructure: 'Interact with stacks, queues and trees — coming soon.',
-};
-
-const AlgorithmVisualizer = () => {
+export default function AlgorithmVisualizer() {
   const [activeTab, setActiveTab] = useState('kmeans');
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <motion.div
-        className="mb-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <h1 className="text-2xl font-bold mb-2">ML Visualizer</h1>
-        <p className="text-gray-400">
-          Interactive visualizations for core ML concepts — see algorithms run step-by-step.
-        </p>
-      </motion.div>
+    <div className="w-full h-full flex flex-col gap-4">
 
-      {/* tab bar */}
-      <div className="mb-5 overflow-x-auto">
-        <div className="flex gap-1 border-b border-dark-lightest min-w-max">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 py-2.5 px-4 text-sm border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-primary text-white font-semibold'
-                  : 'border-transparent text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <span>{tab.icon}</span>
-              {tab.label}
-              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ml-0.5 ${tab.badgeColor}`}>
-                {tab.badge}
-              </span>
-            </button>
-          ))}
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              activeTab === tab.id
+                ? 'bg-primary text-white'
+                : 'bg-dark-lightest text-gray-300 hover:bg-dark'
+            }`}
+          >
+            {tab.icon} {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* description */}
-      <motion.p
-        key={activeTab}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="text-sm text-gray-400 mb-4"
-      >
-        {descriptions[activeTab]}
-      </motion.p>
+      {/* MAIN GRID */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-4 items-stretch">
 
-      {/* two-column layout: visualizer left, theory panel right */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-4 items-start">
-
-        {/* visualizer card */}
+        {/* LEFT PANEL */}
         <motion.div
-          key={activeTab + '-card'}
+          key={activeTab}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
-          className="card overflow-hidden"
+          className="card overflow-hidden h-full flex flex-col justify-between min-h-[600px]"
         >
-          {activeTab === 'kmeans'        && <KMeansVisualizer />}
-          {activeTab === 'gradient'      && <GradientDescentVisualizer />}
-          {activeTab === 'neural'        && <NeuralNetworkVisualizer />}
-          {activeTab === 'sorting'       && <SortingVisualizer />}
-          {activeTab === 'pathfinding'   && <PathfindingVisualizer />}
+          {activeTab === 'kmeans' && <KMeansVisualizer />}
+          {activeTab === 'gradient' && <GradientDescentVisualizer />}
+          {activeTab === 'neural' && <NeuralNetworkVisualizer />}
+          {activeTab === 'sorting' && <SortingVisualizer />}
+          {activeTab === 'pathfinding' && <PathfindingVisualizer />}
           {activeTab === 'dataStructure' && <DataStructureVisualizer />}
         </motion.div>
 
-        {/* theory / academic panel */}
-        <TheoryCard activeTab={activeTab} />
+        {/* RIGHT PANEL */}
+        <div className="h-full flex min-h-[600px]">
+          <div className="card h-full w-full flex flex-col">
+            <TheoryCard activeTab={activeTab} />
+          </div>
+        </div>
 
       </div>
     </div>
   );
-};
-
-export default AlgorithmVisualizer;
+}
