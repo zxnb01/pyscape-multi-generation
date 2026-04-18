@@ -123,7 +123,6 @@ https://github.com/user-attachments/assets/2003e487-d3d9-4d20-837f-49a644a440c3
    CREATE TABLE public.profiles (
      id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
      full_name TEXT,
-     nickname TEXT,
      gender TEXT,
      role TEXT,
      organization TEXT,
@@ -206,7 +205,6 @@ The `profiles` table stores user profile information:
 |--------|------|-------------|
 | id | UUID | Primary key, references auth.users(id) |
 | full_name | TEXT | User's full name |
-| nickname | TEXT | User's preferred nickname |
 | gender | TEXT | User's gender |
 | role | TEXT | User's role (Student, Professional, etc.) |
 | organization | TEXT | User's organization/school |

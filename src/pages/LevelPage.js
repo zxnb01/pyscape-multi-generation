@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, CheckCircle, BookOpen, Code, Lightbulb, Target } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
@@ -16,13 +16,22 @@ import UniversalCodePlayground from "../components/sandbox/UniversalCodePlaygrou
 import lessonContentService from '../services/lessonContentService';
 import supabase from '../utils/supabaseClient';
 import { useAuth } from '../context/AuthContext';
-import { awardXP, updateStreak, checkBadges } from "../gamification/gamificationService";
-import XPToast from "../gamification/XPToast";
+import { checkAndAwardBadges, updateStreak } from "../gamification/gamificationService";
+import useGamification from "../gamification/useGamification";
 
 const LevelPage = () => {
   const { moduleId, lessonId, levelId } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
+  const { refreshData, awardXPWithNotification, showXPNotification } = useGamification();
   const [level, setLevel] = useState(null);
+  const [lessonDbId, setLessonDbId] = useState(null);
+  const [lessonOrder, setLessonOrder] = useState(null);
+  const [lessonType, setLessonType] = useState('read');
+  const [lessonTotalLevels, setLessonTotalLevels] = useState(1);
+  const [lessonXpReward, setLessonXpReward] = useState(10);
+  const [lessonCompleted, setLessonCompleted] = useState(false);
+  const [moduleLessons, setModuleLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('learn');
@@ -31,9 +40,6 @@ const LevelPage = () => {
   const [progressState, setProgressState] = useState('not_started');
   const [progressSaving, setProgressSaving] = useState(false);
   const [progressMessage, setProgressMessage] = useState('');
-  const [showXP, setShowXP] = useState(false);
-  const [earnedXP, setEarnedXP] = useState(0);
-  
 
   // Fetch level content from Supabase
   useEffect(() => {
@@ -60,6 +66,39 @@ const LevelPage = () => {
         } else {
           console.log('✅ Content loaded successfully:', content.title);
           setLevel(content);
+          setLessonDbId(Number(content.lessonDbId || lessonId));
+          setLessonOrder(content.lessonOrder ?? null);
+          
+          // Fetch lesson metadata for proper XP tracking and navigation
+          try {
+            const { data: lessonData } = await supabase
+              .from('lessons')
+              .select('type, parts, xp_reward')
+              .eq('id', content.lessonDbId)
+              .single();
+
+            if (lessonData) {
+              setLessonType(lessonData.type || 'read');
+              const totalParts = Array.isArray(lessonData.parts)
+                ? lessonData.parts.filter(Boolean).length
+                : 1;
+              setLessonTotalLevels(totalParts || 1);
+              setLessonXpReward(lessonData.xp_reward ?? 10);
+              setLessonOrder(lessonData.order_index ?? lessonOrder ?? null);
+              setLessonDbId(lessonData.id ?? Number(lessonId));
+              console.log(`📖 Lesson type: ${lessonData.type}, totalLevels: ${totalParts}, xpReward: ${lessonData.xp_reward}, orderIndex: ${lessonData.order_index}`);
+            }
+          } catch (err) {
+            console.warn('⚠️ Could not fetch lesson metadata:', err);
+          }
+
+          // Load module lesson listing for next/previous navigation
+          try {
+            const lessonsForModule = await lessonContentService.getLessonsForModule(modId);
+            setModuleLessons(lessonsForModule || []);
+          } catch (err) {
+            console.warn('⚠️ Could not fetch module lessons for navigation:', err);
+          }
         }
       } catch (err) {
         console.error('Error fetching level content:', err);
@@ -78,31 +117,91 @@ const LevelPage = () => {
     setShowSolution(false);
   }, [currentExample, activeTab]);
 
+  const currentLevel = parseInt(levelId, 10) || 1;
+  const previousLevelId = currentLevel > 1 ? currentLevel - 1 : null;
+  const nextLevelId = lessonTotalLevels && currentLevel < lessonTotalLevels ? currentLevel + 1 : null;
+
+  const currentLessonIndex = moduleLessons.findIndex((lesson) => Number(lesson.id) === Number(lessonDbId));
+  const currentModuleLesson = currentLessonIndex >= 0 ? moduleLessons[currentLessonIndex] : null;
+  const effectiveLessonOrder = currentModuleLesson
+    ? (currentModuleLesson.order_index ?? currentLessonIndex + 1)
+    : lessonOrder || level?.lessonOrder || lessonId;
+
+  const previousRoute = previousLevelId
+    ? `/learn/${moduleId}/lesson/${lessonId}/level/${previousLevelId}`
+    : null;
+
+  const nextRoute = nextLevelId
+    ? `/learn/${moduleId}/lesson/${lessonId}/level/${nextLevelId}`
+    : null;
+
+  const previousLabel = 'Previous Level';
+  const nextLabel = 'Next Level';
+
   // Fetch lesson progress for current user
   useEffect(() => {
     const fetchProgress = async () => {
-      if (!user?.id) {
+      if (!user?.id || !lessonDbId) {
         setProgressState('not_started');
+        setLessonCompleted(false);
         return;
       }
 
+      const parsedLevelId = parseInt(levelId, 10);
+
       try {
-        const { data, error: progressError } = await supabase
+        const { data: partProgress, error: partError } = await supabase
+          .from('lesson_part_progress')
+          .select('state')
+          .eq('user_id', user.id)
+          .eq('lesson_id', lessonDbId)
+          .eq('part_level', parsedLevelId)
+          .maybeSingle();
+
+        if (partError) {
+          console.warn('⚠️ lesson_part_progress fetch error:', partError);
+        }
+
+        const { data: completedLevels, error: completedError } = await supabase
+          .from('lesson_part_progress')
+          .select('part_level')
+          .eq('user_id', user.id)
+          .eq('lesson_id', lessonDbId)
+          .eq('state', 'completed');
+
+        if (completedError) {
+          console.warn('⚠️ lesson completion fetch error:', completedError);
+        }
+
+        const completedCount = (completedLevels || []).length;
+        const isLessonComplete = completedCount >= lessonTotalLevels;
+        setLessonCompleted(isLessonComplete);
+
+        if (partProgress?.state) {
+          setProgressState(partProgress.state);
+          return;
+        }
+
+        const { data: lessonProgress, error: lessonError } = await supabase
           .from('progress')
           .select('state')
           .eq('user_id', user.id)
-          .eq('lesson_id', parseInt(lessonId, 10))
+          .eq('lesson_id', lessonDbId)
           .maybeSingle();
 
-        if (progressError) throw progressError;
-        setProgressState(data?.state || 'not_started');
+        if (lessonError) {
+          console.warn('⚠️ legacy progress fetch error:', lessonError);
+        }
+
+        const fallbackState = lessonProgress?.state === 'completed' && isLessonComplete ? 'completed' : 'not_started';
+        setProgressState(fallbackState);
       } catch (err) {
         console.error('Failed to fetch lesson progress:', err);
       }
     };
 
     fetchProgress();
-  }, [user, lessonId]);
+  }, [user, lessonDbId, levelId, lessonTotalLevels]);
 
   const updateProgressState = async (nextState) => {
   if (!user?.id) {
@@ -114,55 +213,165 @@ const LevelPage = () => {
   setProgressMessage('');
 
   try {
-    const payload = {
-      user_id: user.id,
-      lesson_id: parseInt(lessonId, 10),
-      state: nextState,
-      updated_at: new Date().toISOString()
-    };
+    const userId = user.id;
+    const parsedLessonId = parseInt(lessonId, 10);
+    const parsedLevelId = parseInt(levelId, 10);
+    const currentLessonId = lessonDbId || level?.lessonDbId;
+    const score = nextState === 'completed' ? 100 : 0;
 
-    if (nextState === 'completed') {
-      payload.score = 100;
+    if (!currentLessonId) {
+      throw new Error('Lesson DB ID is not available yet. Please wait for the lesson to finish loading before saving progress.');
     }
 
-    const { error: upsertError } = await supabase
-      .from('progress')
-      .upsert(payload, {
-        onConflict: 'user_id,lesson_id'
-      });
+    console.log(`📝 Starting progress update: state=${nextState}, user=${user.id}, lesson=${parsedLessonId}, level=${levelId}`);
+    console.log(`📤 Updating progress for lesson level: user=${userId}, lesson=${currentLessonId}, level=${parsedLevelId}, state=${nextState}, score=${score}`);
 
-    if (upsertError) throw upsertError;
+    const { error: progressError } = await supabase
+      .from('lesson_part_progress')
+      .upsert(
+        {
+          user_id: userId,
+          lesson_id: currentLessonId,
+          part_level: parsedLevelId,
+          state: nextState,
+          score,
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: ['user_id', 'lesson_id', 'part_level'] }
+      );
 
-    // 🔥🔥🔥 ADD THIS BLOCK (MAIN FIX)
-    if (nextState === 'completed') {
-      const xp = level?.xp_reward || 50;
+    if (progressError) {
+      console.error('❌ lesson_part_progress upsert error:', progressError);
+      throw progressError;
+    }
+
+    console.log(`✅ Level progress saved successfully: ${nextState}`);
+
+    const xpAmount = level?.xp_reward ?? lessonXpReward ?? 10;
+    let currentEarnedXP = 0;
+    let badgeList = [];
+
+    if (nextState === 'completed' && progressState !== 'completed') {
+      console.log(`🎯 Completing level: user=${userId}, lessonId=${lessonDbId}, level=${parsedLevelId}, xp=${xpAmount}, currentState=${progressState}`);
 
       try {
-        await awardXP(user.id, xp, "level", parseInt(levelId));
+        // 🎯 Award XP for level completion (no badge checking here - badges check at FULL lesson completion)
+        const sourceType = lessonType === 'labTrigger' 
+          ? `project_lesson_level_${parsedLevelId}`
+          : `lesson_level_${parsedLevelId}`;
+        
+        const xpResult = await awardXPWithNotification(xpAmount, sourceType, lessonDbId);
+        
+        console.log(`✅ Level XP awarded:`, xpResult);
 
-          // 🎉 SHOW XP POPUP
-          setEarnedXP(xp);
-          setShowXP(true);
-          setTimeout(() => setShowXP(false), 2000);
+        currentEarnedXP = xpResult.xpAwarded || 0;
 
-          await updateStreak(user.id);
-          await checkBadges(user.id);
+        if (currentEarnedXP === 0) {
+          console.warn(`⚠️ Level XP did not award (possibly duplicate). Verify xp_history source_type support:`, {
+            userId,
+            lessonDbId,
+            level: parsedLevelId,
+            xpAmount,
+            lessonType
+          });
+        }
+
+        await refreshData();
+        console.log(`🔄 Gamification data refreshed`);
       } catch (err) {
-        console.error("Gamification error:", err);
+        console.error("❌ Gamification error:", err);
       }
+    }
+
+    try {
+      const { data: lessonProgressRow, error: lessonProgressError } = await supabase
+        .from('progress')
+        .select('state')
+        .eq('user_id', userId)
+        .eq('lesson_id', currentLessonId)
+        .maybeSingle();
+
+      if (lessonProgressError) {
+        console.warn('⚠️ legacy progress read error:', lessonProgressError);
+      }
+
+      const { data: lessonData } = await supabase
+        .from('lessons')
+        .select('parts')
+        .eq('id', currentLessonId)
+        .maybeSingle();
+
+      const totalLevels = Array.isArray(lessonData?.parts)
+        ? lessonData.parts.filter(Boolean).length || 1
+        : 1;
+
+      const { data: completedLevels } = await supabase
+        .from('lesson_part_progress')
+        .select('part_level')
+        .eq('user_id', userId)
+        .eq('lesson_id', currentLessonId)
+        .eq('state', 'completed');
+
+      const completedCount = (completedLevels || []).length;
+      const lessonState = completedCount >= totalLevels ? 'completed' : 'in_progress';
+      const isLessonNowComplete = lessonState === 'completed';
+      const shouldAwardLessonCompletion = isLessonNowComplete && lessonProgressRow?.state !== 'completed';
+
+      // FIX: Update progress table BEFORE checking badges (critical ordering fix)
+      const shouldUpdateLegacyProgress = lessonProgressRow?.state !== lessonState;
+      if (shouldUpdateLegacyProgress) {
+        const { error: legacyUpdateError } = await supabase.from('progress').upsert(
+          {
+            user_id: userId,
+            lesson_id: currentLessonId,
+            state: lessonState,
+            score: lessonState === 'completed' ? 100 : 0,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: ['user_id', 'lesson_id'] }
+        );
+
+        if (legacyUpdateError) {
+          console.warn('⚠️ legacy progress upsert error:', legacyUpdateError);
+        } else {
+          console.log(`✅ Progress table updated to ${lessonState} BEFORE badge check`);
+        }
+      }
+
+      // NOW check and award badges (after progress is updated)
+      if (shouldAwardLessonCompletion) {
+        try {
+          // Award lesson badges only (no XP for lesson completion)
+          const newBadges = await checkAndAwardBadges(userId);
+          console.log('✅ Lesson completion badges awarded:', newBadges);
+
+          // Show badge notifications
+          if (newBadges?.length > 0) {
+            showXPNotification(0, newBadges);
+          }
+          
+          await refreshData();
+        } catch (lessonErr) {
+          console.error('❌ Lesson completion badge error:', lessonErr);
+        }
+      }
+
+      setLessonCompleted(isLessonNowComplete);
+    } catch (legacyErr) {
+      console.warn('⚠️ Error updating legacy lesson progress summary:', legacyErr);
     }
 
     setProgressState(nextState);
 
     setProgressMessage(
       nextState === 'completed'
-        ? 'Lesson completed! XP, streak, and badges updated 🎉'
+        ? 'Level completed! 🎉'
         : 'Progress saved.'
     );
 
   } catch (err) {
-    console.error('Failed to save lesson progress:', err);
-    setProgressMessage('Could not save progress. Please try again.');
+    console.error('❌ Failed to save lesson progress:', err);
+    setProgressMessage(`Could not save progress: ${err.message || 'Please try again.'}`);
   } finally {
     setProgressSaving(false);
   }
@@ -215,8 +424,29 @@ const LevelPage = () => {
             </Link>
             <div className="flex items-center gap-3">
               <span className="text-slate-400 text-sm">
-                Module {moduleId} • Lesson {lessonId} • Level {parseInt(levelId)}
+                Module {moduleId} • Lesson {effectiveLessonOrder} • Level {parseInt(levelId)}
               </span>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => previousRoute && navigate(previousRoute)}
+                disabled={!previousRoute}
+                className="py-2 px-3 rounded-md border border-white/10 text-slate-300 hover:text-white hover:border-white/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← {previousLabel}
+              </button>
+              <button
+                onClick={() => nextRoute && navigate(nextRoute)}
+                disabled={!nextRoute}
+                className="py-2 px-3 rounded-md bg-primary text-white hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {nextLabel} →
+              </button>
+            </div>
+            <div className="text-sm text-slate-400">
+              Level {currentLevel} of {lessonTotalLevels}
             </div>
           </div>
         </div>
@@ -243,7 +473,7 @@ const LevelPage = () => {
               {progressState === 'completed' && (
                 <div className="mb-3">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-700/40">
-                    ✓ Lesson Completed
+                    ✓ Level Completed
                   </span>
                 </div>
               )}
@@ -587,7 +817,7 @@ const LevelPage = () => {
                   </div>
                   <div className="flex justify-between text-slate-300">
                     <span>Lesson:</span>
-                    <span className="text-white font-semibold">{lessonId}</span>
+                    <span className="text-white font-semibold">{effectiveLessonOrder}</span>
                   </div>
                   <div className="flex justify-between text-slate-300">
                     <span>Module:</span>
@@ -595,7 +825,7 @@ const LevelPage = () => {
                   </div>
                   <div className="flex justify-between text-slate-300 mt-3 pt-3 border-t border-white/10">
                     <span>XP Reward:</span>
-                    <span className="text-primary font-semibold">+{level.xp_reward || 50}</span>
+                    <span className="text-primary font-semibold">+{level.xp_reward || 10}</span>
                   </div>
                   <div className="flex justify-between text-slate-300">
                     <span>Status:</span>
@@ -606,17 +836,17 @@ const LevelPage = () => {
                 <div className="mt-4 flex flex-col gap-2">
                   <button
                     onClick={() => updateProgressState('in_progress')}
-                    disabled={progressSaving}
+                    disabled={progressSaving || !lessonDbId}
                     className="w-full py-2 px-3 rounded-md bg-slate-700 text-slate-100 hover:bg-slate-600 transition disabled:opacity-60"
                   >
-                    Mark In Progress
+                    {lessonDbId ? 'Mark In Progress' : 'Loading...'}
                   </button>
                   <button
                     onClick={() => updateProgressState('completed')}
-                    disabled={progressSaving}
+                    disabled={progressSaving || !lessonDbId}
                     className="w-full py-2 px-3 rounded-md bg-primary text-white hover:bg-primary/90 transition disabled:opacity-60"
                   >
-                    {progressState === 'completed' ? 'Completed ✓' : 'Mark Complete'}
+                    {progressState === 'completed' ? 'Completed ✓' : lessonDbId ? 'Mark Complete' : 'Loading...'}
                   </button>
                   {progressMessage && (
                     <p className="text-xs text-slate-300 mt-1">{progressMessage}</p>
@@ -649,12 +879,8 @@ const LevelPage = () => {
           </div>
         </div>
       </div>
-      <XPToast xp={earnedXP} show={showXP} />
     </div>
   );
 };
 
 export default LevelPage;
-
-
-

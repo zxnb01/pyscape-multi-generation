@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProjectById } from '../data/projectsData';
+import { useAuth } from '../context/AuthContext';
+import useGamification from '../gamification/useGamification';
 
 /* ─── tiny helpers ─────────────────────────────────────────── */
 
@@ -71,10 +73,14 @@ function renderContent(text) {
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { refreshData, awardXPWithNotification, updateStreak, checkAndAwardBadges, showXPNotification } = useGamification();
   const [selectedMode, setSelectedMode] = useState(null);
   const [openStep, setOpenStep] = useState(null);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [completed, setCompleted] = useState(false);
+  const [completionError, setCompletionError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -189,7 +195,52 @@ export default function ProjectDetailPage() {
                 {k}
               </span>
             ))}
+            {!isLocked && (
+              <button
+                onClick={async () => {
+                  setCompletionError('');
+                  if (!user?.id) {
+                    setCompletionError('You must be signed in to complete a project.');
+                    return;
+                  }
+
+                  try {
+                    setLoading(true);
+                    
+                    // Award XP with notification
+                    const xpResult = await awardXPWithNotification(xp, 'project', parseInt(id, 10));
+                    
+                    if (xpResult.xpAwarded > 0) {
+                      // Update streak and check for additional badges
+                      await updateStreak(user.id);
+                      const additionalBadges = await checkAndAwardBadges(user.id);
+                      if (additionalBadges && additionalBadges.length > 0) {
+                        showXPNotification(0, additionalBadges);
+                      }
+                      
+                      setCompleted(true);
+                      await refreshData();
+                    }
+                    
+                    console.log('✅ Project completion awarded:', xpResult);
+                  } catch (err) {
+                    console.error('Project completion failed:', err);
+                    setCompletionError('Failed to award project XP. Please try again.');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="ml-3 text-xs px-3 py-1.5 rounded-full border border-primary/30 bg-primary/20 text-primary font-semibold"
+              >
+                {completed ? 'Project Completed' : 'Mark Complete'}
+              </button>
+            )}
           </div>
+          {completionError && (
+            <div className="mt-3 text-sm text-red-400">
+              {completionError}
+            </div>
+          )}
         </div>
       </motion.div>
 

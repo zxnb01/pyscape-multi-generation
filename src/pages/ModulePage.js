@@ -1,8 +1,10 @@
 // src/pages/ModulePage.js
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import supabase from "../utils/supabaseClient";
 import { useAuth } from "../context/AuthContext";
+import ModuleQuiz from "../components/ModuleQuiz";
 
 const ModulePage = () => {
   const { moduleId } = useParams();
@@ -12,6 +14,7 @@ const ModulePage = () => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedLessons, setExpandedLessons] = useState({});
+  const [lessonFilter, setLessonFilter] = useState('all');
 
   useEffect(() => {
     const fetchModuleData = async () => {
@@ -46,59 +49,95 @@ const ModulePage = () => {
           throw lessonErr;
         }
 
-        // Fetch lesson completion state for the signed-in user
+        // Fetch lesson and level completion state for the signed-in user
         let progressMap = {};
+        let levelProgressMap = {};
         if (user?.id && lessonData?.length) {
           const lessonIds = lessonData.map(l => l.id);
-          const { data: progressRows, error: progressErr } = await supabase
-            .from('progress')
-            .select('lesson_id, state')
-            .eq('user_id', user.id)
-            .in('lesson_id', lessonIds);
 
-          if (progressErr) {
-            console.error('⚠️ Progress fetch error:', progressErr);
+          const [progressResult, levelProgressResult] = await Promise.all([
+            supabase
+              .from('progress')
+              .select('lesson_id, state')
+              .eq('user_id', user.id)
+              .in('lesson_id', lessonIds),
+            supabase
+              .from('lesson_part_progress')
+              .select('lesson_id, part_level, state')
+              .eq('user_id', user.id)
+              .in('lesson_id', lessonIds)
+          ]);
+
+          if (progressResult.error) {
+            console.error('⚠️ Progress fetch error:', progressResult.error);
           } else {
-            progressMap = (progressRows || []).reduce((acc, row) => {
+            progressMap = (progressResult.data || []).reduce((acc, row) => {
               acc[row.lesson_id] = row.state;
+              return acc;
+            }, {});
+          }
+
+          if (levelProgressResult.error) {
+            console.error('⚠️ Lesson part progress fetch error:', levelProgressResult.error);
+          } else {
+            levelProgressMap = (levelProgressResult.data || []).reduce((acc, row) => {
+              const lessonId = row.lesson_id;
+              const levelKey = row.part_level;
+              acc[lessonId] = acc[lessonId] || {};
+              acc[lessonId][levelKey] = row.state;
               return acc;
             }, {});
           }
         }
 
         // Transform lessons: convert parts array to levels with proper IDs
-        const enrichedLessons = (lessonData || []).map(lesson => {
+        const enrichedLessons = (lessonData || []).map((lesson, index) => {
           let levels = [];
           
           // If lesson has parts from database, use them
           if (lesson.parts && Array.isArray(lesson.parts) && lesson.parts.length > 0) {
-            // Filter out null/undefined parts and map to levels
+            // Map parts preserving original index for level numbers
+            // This handles arrays with nulls: [part1, null, part3] → levels 1,3
             levels = lesson.parts
-              .filter(part => part != null) // Skip null/undefined elements
-              .map((part, index) => ({
-                id: part.level || (index + 1),
-                level: part.level || (index + 1),
-                title: part.title || `Level ${index + 1}`,
-                description: part.description || ''
-              }));
-            console.log(`✅ Loaded ${levels.length} parts for lesson "${lesson.title}" from database`);
+              .map((part, originalIndex) => {
+                if (part == null) return null;
+                const levelNum = part?.level ?? originalIndex + 1;
+                return {
+                  id: levelNum,
+                  level: levelNum,
+                  title: part.title || `Level ${levelNum}`,
+                  description: part.description || ''
+                };
+              })
+              .filter(level => level != null); // Remove nulls after mapping
+            console.log(`✅ Loaded ${levels.length} parts for lesson "${lesson.title}": ${levels.map(l => l.level).join(', ')}`)
           } else {
             // Fallback: create a single level with lesson title if no parts exist
-            levels = [{ 
+            levels = [{
               id: 1,
               level: 1,
               title: lesson.title, 
               description: 'Content coming soon' 
             }];
-            console.warn(`⚠️ No parts found for lesson "${lesson.title}" - showing placeholder`);
+            console.warn(`⚠️ No parts found for lesson "${lesson.title}" - showing placeholder`)
           }
+
+          const lessonLevelProgress = levelProgressMap[lesson.id] || {};
+          const totalLevels = levels.length;
+          const completedCount = Object.values(lessonLevelProgress).filter((state) => state === 'completed').length;
+          const allLevelsCompleted = totalLevels > 0 && completedCount === totalLevels;
+          const lessonCompleted = progressMap[lesson.id] === 'completed' || allLevelsCompleted;
+          const lessonInProgress = !lessonCompleted && (Object.keys(lessonLevelProgress).length > 0 || progressMap[lesson.id] === 'in_progress');
+          const progressState = lessonCompleted ? 'completed' : lessonInProgress ? 'in_progress' : 'not_started';
 
           return {
             ...lesson,
+            lessonNumber: lesson.order_index ?? index + 1,
             description: lesson.type === 'read' ? 'Read through the content' : 'Practice with code',
             levels: levels,
-            progressState: progressMap[lesson.id] || 'not_started',
-            isCompleted: progressMap[lesson.id] === 'completed'
+            progressState,
+            isCompleted: lessonCompleted,
+            levelProgress: lessonLevelProgress
           };
         });
 
@@ -143,28 +182,83 @@ const ModulePage = () => {
 
   if (!module) return <h2 className="text-center text-red-500">Module not found</h2>;
 
+  // Filter lessons based on selected filter
+  const filteredLessons = lessons.filter((lesson) => {
+    if (lessonFilter === 'completed') return lesson.isCompleted;
+    if (lessonFilter === 'not_completed') return !lesson.isCompleted;
+    return true; // 'all'
+  });
+
   return (
     <div className="p-8">
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-6 transition-colors"
-      >
-        ← Back
-      </button>
-      <h1 className="text-3xl font-bold mb-6 text-white">{module.title}</h1>
+      <h1 className="text-3xl font-bold mb-8 text-white">{module.title}</h1>
 
-      <h3 className="text-xl font-semibold mb-4 text-gray-300">Lessons</h3>
+      {/* Filter Tabs */}
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={() => setLessonFilter('all')}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            lessonFilter === 'all'
+              ? 'bg-primary text-white shadow-lg shadow-primary/50'
+              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+          }`}
+        >
+          All Lessons
+        </button>
+        <button
+          onClick={() => setLessonFilter('completed')}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            lessonFilter === 'completed'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/50'
+              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+          }`}
+        >
+          Completed
+        </button>
+        <button
+          onClick={() => setLessonFilter('not_completed')}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            lessonFilter === 'not_completed'
+              ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/50'
+              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+          }`}
+        >
+          Not Completed
+        </button>
+      </div>
 
       <div className="flex flex-col gap-6">
-        {lessons.map((lesson) => (
-          <div
-            key={lesson.id}
-            className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-md transition-all"
-          >
+        {filteredLessons.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400 text-lg">
+              {lessonFilter === 'completed' && "No completed lessons yet. Start learning! 🚀"}
+              {lessonFilter === 'not_completed' && "No remaining lessons. You're all caught up! ✨"}
+            </p>
+          </div>
+        ) : null}
+        <AnimatePresence initial={false} mode="popLayout">
+          {filteredLessons.map((lesson) => (
+            <motion.div
+              key={lesson.id}
+              onClick={() => toggleLesson(lesson.id)}
+              className={`bg-dark border rounded-xl p-6 shadow-sm cursor-pointer transition-all duration-300 ${
+                lesson.isCompleted
+                  ? 'border-emerald-500/50 hover:border-emerald-400/80 shadow-emerald-500/10'
+                  : 'border-gray-700 hover:border-primary/70 hover:shadow-primary/10'
+              }`}
+              role="button"
+              aria-expanded={!!expandedLessons[lesson.id]}
+              layout
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              whileHover={{ y: -2, scale: 1.005 }}
+              transition={{ type: 'spring', stiffness: 220, damping: 20 }}
+            >
             <div className="flex justify-between items-center">
               <div>
                 <h4 className="text-lg font-semibold text-white mb-1">
-                  {lesson.title}
+                  Lesson {lesson.lessonNumber}: {lesson.title}
                 </h4>
                 <p className="text-gray-400 text-sm">{lesson.description}</p>
                 <div className="mt-2">
@@ -185,7 +279,10 @@ const ModulePage = () => {
               </div>
 
               <button
-                onClick={() => toggleLesson(lesson.id)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  toggleLesson(lesson.id);
+                }}
                 className="text-blue-400 text-sm font-medium hover:underline focus:outline-none"
               >
                 {expandedLessons[lesson.id]
@@ -198,24 +295,46 @@ const ModulePage = () => {
 
             {/* Collapsible Levels Section */}
             {expandedLessons[lesson.id] && (
-              <div className="flex flex-col gap-2 mt-4 animate-fadeIn">
-                {lesson.levels.map((level) => (
-                  <Link
-                    key={level.id}
-                    to={`/learn/${moduleId}/lesson/${lesson.id}/level/${level.id}`}
-                    className={`text-sm font-medium py-2 px-4 rounded-md transition transform hover:scale-[1.02] ${
-                      lesson.isCompleted
-                        ? 'bg-emerald-900/30 hover:bg-emerald-800/40 text-emerald-200'
-                        : 'bg-gray-700 hover:bg-gray-600 text-blue-300'
-                    }`}
-                  >
-                    {lesson.isCompleted ? '✓ ' : ''}Level {level.level}: {level.title} →
-                  </Link>
-                ))}
-              </div>
+              <motion.div
+                layout
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="flex flex-col gap-2 mt-4"
+              >
+                {lesson.levels.map((level) => {
+                  const isLevelComplete = lesson.levelProgress?.[level.id] === 'completed' || lesson.isCompleted;
+                  return (
+                    <Link
+                      key={level.id}
+                      to={`/learn/${moduleId}/lesson/${lesson.id}/level/${level.id}`}
+                      className={`text-sm font-medium py-3 px-4 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 ${
+                        isLevelComplete
+                          ? 'border-emerald-500/40 text-emerald-200 bg-emerald-900/10 hover:border-emerald-300'
+                          : 'border-gray-700 text-gray-200 bg-transparent hover:border-primary/60 hover:bg-white/5'
+                      }`}
+                    >
+                      {isLevelComplete ? '✓ ' : ''}Level {level.level}: {level.title} →
+                    </Link>
+                  );
+                })}
+              </motion.div>
             )}
-          </div>
+          </motion.div>
         ))}
+        </AnimatePresence>
+      </div>
+
+      {/* MODULE QUIZ SECTION */}
+      <div className="mt-12 pt-8 border-t border-gray-700 flex justify-center">
+        <div className="w-full max-w-2xl">
+          <h3 className="text-xl font-semibold mb-6 text-yellow-400">📖 Module Assessment</h3>
+          <p className="text-gray-400 text-sm mb-6">
+            Complete all lessons above to unlock the module quiz and test your mastery!
+          </p>
+          <ModuleQuiz moduleId={parseInt(moduleId)} moduleName={module.title} />
+        </div>
       </div>
     </div>
   );

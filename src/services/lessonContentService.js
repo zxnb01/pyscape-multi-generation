@@ -225,6 +225,7 @@ class LessonContentService {
           }
           
           parts.forEach(part => {
+            const xpReward = part.xp_reward ?? part.xpReward ?? 10;
             levelContent[module.id][lessonNumber][part.level] = {
               title: part.title || lesson.title,
               description: part.description || lesson.title,
@@ -234,7 +235,9 @@ class LessonContentService {
               exercise: part.exercise || null,
               testCases: part.testCases || [],
               estimated_minutes: lesson.estimated_minutes,
-              xp_reward: lesson.xp_reward
+              xp_reward: xpReward,
+              lessonDbId: lesson.id,
+              lessonOrder: lesson.order_index || lessonNumber
             };
           });
         });
@@ -277,15 +280,28 @@ class LessonContentService {
         return null;
       }
 
-      const { data: lesson, error: lessonError } = await supabase
+      let { data: lesson, error: lessonError } = await supabase
         .from('lessons')
         .select('*')
         .eq('id', lessonId)
         .eq('module_id', moduleId)
         .single();
 
+      if ((!lesson || lessonError) && lessonId != null) {
+        console.log(`   🔄 Lesson ${lessonId} not found by ID, trying order_index fallback for module ${moduleId}`);
+        const fallback = await supabase
+          .from('lessons')
+          .select('*')
+          .eq('module_id', moduleId)
+          .eq('order_index', lessonId)
+          .single();
+
+        lesson = fallback.data;
+        lessonError = fallback.error;
+      }
+
       if (lessonError || !lesson) {
-        console.error(`❌ Lesson ID ${lessonId} not found in module ${moduleId}:`, lessonError?.message || 'No lesson returned');
+        console.error(`❌ Lesson ${lessonId} not found in module ${moduleId}:`, lessonError?.message || 'No lesson returned');
         return null;
       }
 
@@ -319,7 +335,9 @@ class LessonContentService {
               exercise: null,
               testCases: [],
               estimated_minutes: lesson.estimated_minutes,
-              xp_reward: lesson.xp_reward
+              xp_reward: 10,
+              lessonDbId: lesson.id,
+              lessonOrder: lesson.order_index || null
             };
           }
 
@@ -332,7 +350,9 @@ class LessonContentService {
             exercise: legacyContent.exercise || null,
             testCases: legacyContent.testCases || [],
             estimated_minutes: lesson.estimated_minutes,
-            xp_reward: lesson.xp_reward
+            xp_reward: 10,
+            lessonDbId: lesson.id,
+            lessonOrder: lesson.order_index || null
           };
         }
 
@@ -342,6 +362,7 @@ class LessonContentService {
 
       console.log(`   ✓ Got part: "${part.title}" (level=${part.level})`);
 
+      const xpReward = part.xp_reward ?? part.xpReward ?? 10;
       return {
         title: part.title || lesson.title,
         description: part.description || lesson.title,
@@ -351,7 +372,9 @@ class LessonContentService {
         exercise: part.exercise || null,
         testCases: part.testCases || [],
         estimated_minutes: lesson.estimated_minutes,
-        xp_reward: lesson.xp_reward
+        xp_reward: xpReward,
+        lessonOrder: lesson.order_index || null,
+        lessonDbId: lesson.id
       };
     } catch (err) {
       console.error(`Error fetching level content ${moduleId}/${lessonId}/${partLevel}:`, err);

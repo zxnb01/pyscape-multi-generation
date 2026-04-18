@@ -171,29 +171,6 @@ const Learn = () => {
     navigate(`/learn/${moduleId}`);
   };
 
-  // Calculate overall progress across all modules
-  const overallProgress = modules.length > 0
-    ? Math.round(modules.reduce((sum, m) => sum + m.progress, 0) / modules.length)
-    : 0;
-
-  // Get next locked module and its prerequisites for helper text
-  const getNextLockedModuleInfo = () => {
-    const lockedModule = modules.find(m => m.status === 'locked');
-    if (!lockedModule || !lockedModule.prerequisites || lockedModule.prerequisites.length === 0) {
-      return null;
-    }
-
-    const prereqModules = modules.filter(m => lockedModule.prerequisites.includes(m.id));
-    if (prereqModules.length === 0) return null;
-
-    if (prereqModules.length === 1) {
-      return `Complete the ${prereqModules[0].title} module to unlock ${lockedModule.title}`;
-    } else {
-      const titles = prereqModules.map(m => m.title).join(' and ');
-      return `Complete ${titles} to unlock ${lockedModule.title}`;
-    }
-  };
-
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto">
@@ -235,29 +212,6 @@ const Learn = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <div className="card p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium">Your Progress</h2>
-            <button className="btn-secondary py-1 px-3 text-sm">Retake Quiz</button>
-          </div>
-          
-          <div className="flex items-center gap-4 mb-2">
-            <div className="flex-grow bg-dark-lightest h-3 rounded-full overflow-hidden">
-              <motion.div 
-                className="bg-gradient-to-r from-primary to-primary-light h-3 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${overallProgress}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-              />
-            </div>
-            <span className="text-sm font-bold text-primary">{overallProgress}%</span>
-          </div>
-          
-          <p className="text-sm text-gray-400">
-            {getNextLockedModuleInfo() || 'Great! All modules are unlocked. Keep learning!'}
-          </p>
-        </div>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {modules.map((module, index) => (
             <motion.div
@@ -298,12 +252,25 @@ const Learn = () => {
                 <span>Progress: {module.progress}% • {Math.round((module.progress / 100) * module.lessons)}/{module.lessons} lessons</span>
               </div>
               
-              {module.status === 'available' ? (
-                <button className="btn-primary w-full"
-                onClick={() => handleStartLearning(module.id)}>Start Learning</button>
-              ) : (
+              {module.status === 'locked' ? (
                 <button className="w-full py-2 px-4 rounded-md bg-dark-lightest text-gray-500 cursor-not-allowed" disabled>
                   Locked
+                </button>
+              ) : module.progress === 100 ? (
+                <div className="flex gap-2">
+                  <button className="btn-secondary flex-1"
+                  onClick={() => navigate(`/learn/${module.id}?tab=quiz`)}>
+                    📖 Retake Quiz
+                  </button>
+                  <button className="btn-primary flex-1"
+                  onClick={() => handleStartLearning(module.id)}>
+                    Continue
+                  </button>
+                </div>
+              ) : (
+                <button className="btn-primary w-full"
+                onClick={() => handleStartLearning(module.id)}>
+                  {module.progress > 0 ? 'Continue Learning' : 'Start Learning'}
                 </button>
               )}
             </motion.div>

@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import supabase from '../utils/supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
+import { awardQuizXP } from '../gamification/gamificationService';
+import useGamification from '../gamification/useGamification';
 
 const OnboardingQuiz = () => {
   const { user, setUser } = useAuth();
@@ -54,6 +56,8 @@ const OnboardingQuiz = () => {
     setIndex(index - 1);
   };
 
+  const { refreshData, showXPNotification } = useGamification();
+
   const handleSubmit = async () => {
     setLoading(true);
     try {
@@ -68,7 +72,16 @@ const OnboardingQuiz = () => {
         .eq('id', user.id);
       if (error) throw error;
 
+      const quizAwardResult = await awardQuizXP(user.id, 1, 25);
+      console.log('✅ Onboarding quiz XP result:', quizAwardResult);
+
+      // Show notifications for XP and badges earned
+      if (quizAwardResult.xpAwarded > 0 || (quizAwardResult.newBadges && quizAwardResult.newBadges.length > 0)) {
+        showXPNotification(quizAwardResult.xpAwarded, quizAwardResult.newBadges || []);
+      }
+
       setUser((prev) => ({ ...prev, onboarding_completed: true }));
+      await refreshData();
       navigate('/app');
     } catch (err) {
       console.error(err);

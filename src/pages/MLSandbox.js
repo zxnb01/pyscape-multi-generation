@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import UniversalCodePlayground from "../components/sandbox/UniversalCodePlayground";
 
 const exampleCode = {
@@ -124,8 +125,14 @@ print("   pip install tensorflow")`
 };
 
 const MLSandbox = () => {
+  const navigate = useNavigate();
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [currentCode, setCurrentCode] = useState(exampleCode.linearRegression);
+
+  const handleTryExample = (path, code) => {
+    setCurrentCode(code);
+    navigate(path);
+  };
 
   const features = [
     {
@@ -224,7 +231,7 @@ const MLSandbox = () => {
               <h3 className="text-white font-semibold mb-2 text-sm">Linear Regression</h3>
               <p className="text-slate-400 text-xs mb-3 line-clamp-2">Learn the basics of linear regression with NumPy and Scikit-learn</p>
               <button 
-                onClick={() => setCurrentCode(exampleCode.linearRegression)}
+                onClick={() => handleTryExample('/app/learn/7/lesson/59/level/1', exampleCode.linearRegression)}
                 className="text-primary hover:text-primary/80 text-xs font-medium"
               >
                 Try Example →
@@ -240,7 +247,7 @@ const MLSandbox = () => {
               <h3 className="text-white font-semibold mb-2 text-sm">Data Visualization</h3>
               <p className="text-slate-400 text-xs mb-3 line-clamp-2">Create stunning visualizations with Matplotlib and Seaborn</p>
               <button 
-                onClick={() => setCurrentCode(exampleCode.dataVisualization)}
+                onClick={() => handleTryExample('/app/learn/7', exampleCode.dataVisualization)}
                 className="text-primary hover:text-primary/80 text-xs font-medium"
               >
                 Try Example →
@@ -256,7 +263,7 @@ const MLSandbox = () => {
               <h3 className="text-white font-semibold mb-2 text-sm">Neural Networks</h3>
               <p className="text-slate-400 text-xs mb-3 line-clamp-2">Build your first neural network with TensorFlow</p>
               <button 
-                onClick={() => setCurrentCode(exampleCode.neuralNetworks)}
+                onClick={() => handleTryExample('/app/learn/4', exampleCode.neuralNetworks)}
                 className="text-primary hover:text-primary/80 text-xs font-medium"
               >
                 Try Example →

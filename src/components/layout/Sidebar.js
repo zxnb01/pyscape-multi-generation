@@ -106,12 +106,12 @@ const Sidebar = () => {
             } ${isCollapsed ? 'justify-center' : ''}`
           }
         >
-          <span className={`w-10 h-10 rounded-full overflow-hidden border-2 border-gray-500 bg-gray-600 flex items-center justify-center ${isCollapsed ? '' : 'mr-2'}`}>
+          <span className={`w-10 h-10 rounded-full overflow-hidden border-4 border-purple-500 flex items-center justify-center ${isCollapsed ? '' : 'mr-2'}`}>
             {user?.avatar_url ? (
               <img
                 src={user.avatar_url}
                 alt="Avatar"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 onError={(e) => {
                   e.target.style.display = 'none';
                   e.target.nextSibling.style.display = 'flex';

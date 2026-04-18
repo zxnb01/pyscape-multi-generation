@@ -49,11 +49,10 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- Step 2: Create profile for the test user
-INSERT INTO public.profiles (id, full_name, nickname, role, profile_complete, onboarding_completed, selected_topics, created_at, updated_at)
+INSERT INTO public.profiles (id, full_name, role, profile_complete, onboarding_completed, selected_topics, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000001',
   'Dev User',
-  'DevUser',
   'student',
   true,
   true,

@@ -9,7 +9,7 @@ const Header = () => {
   const navigate = useNavigate();
 
   // 🔥 GAMIFICATION DATA (ADDED)
-  const { xp, streak, badges } = useGamification();
+  const { xp, streak } = useGamification();
 
   const handleSignOut = async () => {
     try {
@@ -56,15 +56,15 @@ const Header = () => {
           </div>
 
           {/* STREAK */}
-          <div className="ml-3 flex items-center">
-            <span className="w-2 h-2 bg-accent rounded-full mr-1"></span>
-            <span className="text-sm">{streak} day streak</span>
+          <div className="ml-3 flex items-center text-sm font-medium">
+            <span className="text-lg mr-1">🔥</span>
+            <span>{streak}</span>
           </div>
 
           {/* BADGES */}
-          <div className="ml-3 flex items-center">
+          {/*<div className="ml-3 flex items-center">
             <span className="text-sm">{badges} Badges</span>
-          </div>
+          </div>*/}
         </motion.div>
         
         {/* SIGN OUT */}

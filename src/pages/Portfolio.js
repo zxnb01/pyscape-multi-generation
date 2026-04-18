@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pdf } from '@react-pdf/renderer';
 import SentimentAnalyzerPDF from '../components/portfolio/SentimentAnalyzerPDF';
+import useGamification from '../gamification/useGamification';
+import { getBadgeImagePath } from '../utils/badgeImages';
 
 /* ── Project data ──────────────────────────────────────────── */
 const portfolioProjects = [
@@ -37,6 +39,50 @@ const diffColor = {
 const Portfolio = () => {
   const [activeProject, setActiveProject] = useState(null);
   const [exporting, setExporting] = useState(null);
+  const { xp, currentStreak, longestStreak, badges, earnedBadges = [] } = useGamification();
+
+  const getBadgeRequirementText = (badge) => {
+    if (!badge) return 'unlock this badge';
+    const amount = badge.requirement_value;
+    switch (badge.badge_type) {
+      case 'xp':
+        return `${amount} XP required`;
+      case 'streak':
+        return `${amount} day streak required`;
+      case 'lesson':
+        return `${amount} lesson${amount === 1 ? '' : 's'} completed`;
+      case 'project':
+        return `${amount} project${amount === 1 ? '' : 's'} completed`;
+      default:
+        return amount != null ? `Reach ${amount}` : 'complete the requirement';
+    }
+  };
+
+  const getDisplayDescription = (description, isEarned, badge) => {
+    if (!description) {
+      if (isEarned) {
+        return `Earned ${badge?.title || 'this badge'}`;
+      }
+      return `Unlock by ${getBadgeRequirementText(badge)}`;
+    }
+
+    if (!isEarned) return description;
+
+    const pastTenseMap = {
+      'Complete': 'Completed',
+      'Reach': 'Reached',
+      'Earn': 'Earned',
+      'Maintain': 'Maintained',
+      'Submit': 'Submitted',
+      'Build': 'Built'
+    };
+
+    let pastTense = description;
+    for (const [present, past] of Object.entries(pastTenseMap)) {
+      pastTense = pastTense.replace(new RegExp(`^${present}\\s`), `${past} `);
+    }
+    return pastTense;
+  };
 
   const handleExportPDF = async (project) => {
     setExporting(project.id);
@@ -175,8 +221,10 @@ const Portfolio = () => {
             <div className="space-y-3">
               {[
                 { label: 'Projects Completed', value: portfolioProjects.length, color: 'text-primary' },
-                { label: 'Total XP Earned',    value: `+${portfolioProjects.reduce((a, p) => a + p.xp, 0)} XP`, color: 'text-primary' },
-                { label: 'Avg Accuracy',       value: '87%', color: 'text-green-400' },
+                { label: 'Total XP Earned',    value: `${xp} XP`, color: 'text-primary' },
+                { label: 'Current Streak',     value: `${currentStreak} days`, color: 'text-accent' },
+                { label: 'Best Streak',        value: `${longestStreak} days`, color: 'text-yellow-400' },
+                { label: 'Badges Earned',      value: badges, color: 'text-green-400' },
               ].map(s => (
                 <div key={s.label} className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">{s.label}</span>
@@ -188,23 +236,35 @@ const Portfolio = () => {
 
           <div className="card p-5">
             <h2 className="text-base font-semibold mb-4">Achievements</h2>
-            <div className="space-y-3">
-              {[
-                { icon: '🏆', title: 'First Project', desc: 'Completed your first project', unlocked: true },
-                { icon: '🔥', title: '5-Day Streak',  desc: 'Learn for 5 consecutive days',  unlocked: false },
-                { icon: '💯', title: 'Perfect Score',  desc: 'Get 100% on any challenge',     unlocked: false },
-              ].map(a => (
-                <div key={a.title} className={`flex items-center p-3 rounded-xl ${a.unlocked ? 'bg-dark-lightest' : 'bg-dark-lighter opacity-50'}`}>
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center mr-3 flex-shrink-0 ${a.unlocked ? 'bg-primary/20' : 'bg-dark'}`}>
-                    <span className="text-lg">{a.icon}</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{a.title}</p>
-                    <p className="text-xs text-gray-400">{a.desc}</p>
-                  </div>
-                  {a.unlocked && <span className="ml-auto text-xs text-green-400">✓</span>}
-                </div>
-              ))}
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {earnedBadges.length > 0 ? (
+                earnedBadges.map((item) => {
+                  const badge = item.badges || item;
+                  return (
+                    <div key={badge.id} className="flex items-center p-3 rounded-xl bg-dark-lightest">
+                      <div className="w-9 h-9 flex items-center justify-center mr-3 bg-transparent">
+                        <img
+                          src={getBadgeImagePath(badge)}
+                          alt={badge.title}
+                          className="w-8 h-8 object-contain"
+                          style={{ mixBlendMode: 'screen' }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">{badge.title}</p>
+                        <p className="text-xs text-gray-400">
+                          {getDisplayDescription(badge.description, true, badge)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-sm text-gray-400">No achievements earned yet. Complete lessons to unlock badges.</div>
+              )}
             </div>
           </div>
         </motion.div>

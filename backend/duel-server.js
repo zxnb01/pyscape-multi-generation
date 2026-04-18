@@ -193,7 +193,7 @@ wss.on('connection', (ws) => {
     // Get user profile
     const { data: profile } = await supabase
       .from('profiles')
-      .select('nickname, avatar_url')
+      .select('full_name, avatar_url')
       .eq('id', userId)
       .single();
 
@@ -202,7 +202,7 @@ wss.on('connection', (ws) => {
       ws,
       difficulty: difficulty || 'beginner',
       language: language || 'python',
-      nickname: profile?.nickname || 'Anonymous',
+      nickname: profile?.full_name || 'Anonymous',
       avatar: profile?.avatar_url,
       joinedAt: Date.now()
     };
